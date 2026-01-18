@@ -8,7 +8,7 @@ import NavBar from "./components/NavBar";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import PlaylistScreen from "./pages/PlaylistScreen";
 import LoginScreen from "./pages/LoginScreen";
-
+import AdminScreen from "./pages/admin/AdminScreen";
 const App = () => {
   const [welcome, setWelcome] = useState(true);
 
@@ -32,14 +32,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        {/* <Route
+        <Route
           path="/admin"
           element={
             <ProtectedRoute adminOnly>
               <AdminScreen />
             </ProtectedRoute>
           }
-        /> */}
+        />
         <Route
           path="/playlist"
           element={

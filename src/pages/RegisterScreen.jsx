@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React,{ useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   Container,
@@ -18,6 +18,9 @@ import Swal from "sweetalert2";
 
 // nueva importación !!
 import { registerRequest } from "../api/auth";
+import { useAuth } from "../context/AuthContext";
+
+
 
 const EMAILJS_CONFIG = {
   SERVICE_ID: "service_46a3s63",
@@ -30,7 +33,7 @@ const RegisterScreen = () => {
   const [send, setSend] = useState(false);
   const [errorEmail, setErrorEmail] = useState("");
   const [emailEnviado, setEmailEnviado] = useState(false);
-
+const { signup, errors: registerErrors } = useAuth();
   const {
     register,
     handleSubmit,
@@ -148,7 +151,7 @@ const RegisterScreen = () => {
     try {
     // 1. LLAMADA AL BACKEND (Axios)
     // Ya no buscamos en localStorage, le pedimos al backend que registre
-    const res = await registerRequest(data);
+    const res = await signup(data);
     
     // 2. Si el backend responde bien, seguimos con el mail
     let emailFueEnviado = false;

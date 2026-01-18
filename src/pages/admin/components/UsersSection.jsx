@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Row, Col } from "react-bootstrap";
-import AdminForm from "../../../components/AdminForm";
+import AdminForm from "../AdminForm";
 import UserTable from "./UserTable";
 
 const UsersSection = ({ users, setUsers }) => {
-
   const [editingUser, setEditingUser] = useState(null);
 
   const handleEditUser = (user) => {
@@ -15,7 +14,6 @@ const UsersSection = ({ users, setUsers }) => {
       password: user.password || "",
     });
   };
-
 
   const handleDeleteUser = (userId) => {
     if (!confirm("¿Estás seguro de eliminar este usuario?")) {
@@ -49,4 +47,4 @@ const UsersSection = ({ users, setUsers }) => {
   );
 };
 
-export default UsersSection;
+export default UsersSection;

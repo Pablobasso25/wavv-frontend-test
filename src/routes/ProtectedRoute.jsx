@@ -1,15 +1,21 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { user } = useAuth();
+const ProtectedRoute = ({ adminOnly = false }) => {
+  const { user, isAuthenticated, loading } = useAuth();
 
-  if (!user) return <Navigate to="/login" />;
+  // Mientras se verifica el token en el backend, mostramos un spinner o nada
+  if (loading) return <h1>Cargando...</h1>;
 
-  if (adminOnly && user.role !== "admin") return <Navigate to="/" />;
+  // Si no está autenticado y terminó de cargar
+  if (!loading && !isAuthenticated) return <Navigate to="/login" replace />;
 
-  return children;
+  // Si es una ruta de admin y el usuario no tiene ese rol
+  if (adminOnly && user?.role !== "admin") return <Navigate to="/" replace />;
+
+  // Si todo está bien, renderiza los hijos (NavBar, Home, etc.)
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
