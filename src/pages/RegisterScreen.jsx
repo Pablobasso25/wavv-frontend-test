@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   Container,
@@ -15,6 +15,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import emailjs from "@emailjs/browser";
 import Swal from "sweetalert2";
+
+// nueva importación !!
+import { registerRequest } from "../api/auth";
 
 const EMAILJS_CONFIG = {
   SERVICE_ID: "service_46a3s63",
@@ -140,76 +143,52 @@ const RegisterScreen = () => {
     setSend(true);
     setErrorEmail("");
 
+    ////// reemplazo de codigo //////////
+
     try {
-      const users = JSON.parse(localStorage.getItem("users")) || [];
-      const exists = users.some((user) => user.email === data.email);
-
-      if (exists) {
-        Swal.fire({
-          title: "❌ Error",
-          text: "Ya existe un usuario con ese email",
-          icon: "error",
-          background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)",
-          color: "#ffffff",
-          confirmButtonText: "Entendido",
-          confirmButtonColor: "#dc3545",
-        });
-        setSend(false);
-        return;
-      }
-
-      const newUser = {
-        id: Date.now(),
-        username: data.username,
-        email: data.email,
-        password: data.password,
-        role: "usuario",
-        favorites: [],
-        playlists: [],
-        createdAt: new Date().toISOString(),
-        verificado: false,
+    // 1. LLAMADA AL BACKEND (Axios)
+    // Ya no buscamos en localStorage, le pedimos al backend que registre
+    const res = await registerRequest(data);
+    
+    // 2. Si el backend responde bien, seguimos con el mail
+    let emailFueEnviado = false;
+    try {
+      const templateParams = {
+        to_name: data.username,
+        to_email: data.email,
+        from_name: "Wavv Music",
+        fecha: new Date().toLocaleDateString(),
       };
 
-      localStorage.setItem("users", JSON.stringify([...users, newUser]));
-
-      // ENVIAR EMAIL
-      let emailFueEnviado = false;
-      try {
-        const templateParams = {
-          to_name: data.username,
-          to_email: data.email,
-          email: data.email,
-          from_name: "Harmony Stream",
-          fecha: new Date().toISOString().split("T")[0],
-        };
-
-        await emailjs.send(
-          EMAILJS_CONFIG.SERVICE_ID,
-          EMAILJS_CONFIG.TEMPLATE_ID,
-          templateParams,
-          EMAILJS_CONFIG.PUBLIC_KEY
-        );
-
-        emailFueEnviado = true;
-      } catch (emailError) {
-        emailFueEnviado = false;
-      }
-
-      showSuccessAlert(emailFueEnviado);
-    } catch (error) {
-      Swal.fire({
-        title: "❌ Error",
-        text: "Hubo un problema con el registro. Intenta nuevamente.",
-        icon: "error",
-        background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)",
-        color: "#ffffff",
-        confirmButtonText: "Entendido",
-        confirmButtonColor: "#dc3545",
-      });
-    } finally {
-      setSend(false);
+      await emailjs.send(
+        EMAILJS_CONFIG.SERVICE_ID,
+        EMAILJS_CONFIG.TEMPLATE_ID,
+        templateParams,
+        EMAILJS_CONFIG.PUBLIC_KEY
+      );
+      emailFueEnviado = true;
+    } catch (e) {
+      emailFueEnviado = false;
     }
-  };
+
+    showSuccessAlert(emailFueEnviado);
+
+  } catch (error) {
+    // 3. CAPTURA DE ERRORES DEL BACKEND (Zod)
+    // Los errores que definimos en el back ("Email inválido", etc) caen aquí
+    const serverErrors = error.response?.data;
+    
+    Swal.fire({
+      title: "❌ Error en el registro",
+      text: Array.isArray(serverErrors) ? serverErrors[0] : "El email ya está registrado o hay un error de conexión",
+      icon: "error",
+      background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)",
+      color: "#ffffff",
+    });
+  } finally {
+    setSend(false);
+  }
+};
 
   return (
     <Container className="d-flex align-items-center justify-content-center vh-100 mt-2">

@@ -11,6 +11,9 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// nueva importación
+  import { loginRequest } from "../api/auth";
+
 const LoginScreen = () => {
   const { login } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -28,19 +31,30 @@ const LoginScreen = () => {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setLoading(true);
 
-    const success = login(formData.email, formData.password);
 
-    if (success) {
-      navigate("/");
-    } else {
-      setError("Credenciales incorrectas");
-      setLoading(false);
-    }
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
+
+  try {
+    // 1. LLAMADA AL BACKEND
+    const res = await loginRequest(formData);
+    
+    // 2. GUARDAR EN CONTEXTO
+    // (Opcional) Si tu AuthContext necesita los datos del usuario:
+    // login(res.data); 
+    
+    // 3. ÉXITO
+    navigate("/");
+  } catch (error) {
+    // Si el backend mandó 400 (usuario no encontrado o clave mal)
+    setError(error.response?.data?.message || "Credenciales incorrectas");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Container className="vh-100 d-flex justify-content-center align-items-center">

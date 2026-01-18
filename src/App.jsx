@@ -32,14 +32,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* <Route
           path="/admin"
           element={
             <ProtectedRoute adminOnly>
               <AdminScreen />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/playlist"
           element={
