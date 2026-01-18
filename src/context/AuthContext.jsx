@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { loginRequest, registerRequest, verifyTokenRequest, logoutRequest } from "../api/auth";
-import Cookies from "js-cookie"; // Necesitás instalar esto: npm install js-cookie
+import Cookies from "js-cookie"; 
 
 const AuthContext = createContext();
 

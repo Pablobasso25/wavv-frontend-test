@@ -4,8 +4,10 @@ export const getTokenApi = async () => {
   const endpoint = apiUrl.startsWith("http")
     ? `${apiUrl}/api/token`
     : `${apiUrl}/token`;
+
   const response = await fetch(endpoint);
   const data = await response.json();
+
   const expiresAt = Date.now() + data.expires_in * 1000;
   return { access_token: data.access_token, expires_at: expiresAt };
 };
@@ -13,13 +15,13 @@ export const getTokenApi = async () => {
 export const searchTrack = async (token, query) => {
   const response = await fetch(
     `https://api.spotify.com/v1/search?q=${encodeURIComponent(
-      query
+      query,
     )}&type=track&limit=1`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   const data = await response.json();
@@ -29,13 +31,13 @@ export const searchTrack = async (token, query) => {
 export const searchTracks = async (token, query, limit = 10) => {
   const response = await fetch(
     `https://api.spotify.com/v1/search?q=${encodeURIComponent(
-      query
+      query,
     )}&type=track&limit=${limit}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   const data = await response.json();
@@ -45,9 +47,9 @@ export const searchTracks = async (token, query, limit = 10) => {
 export const searchArtistAndAlbums = async (token, artistName) => {
   const artistRes = await fetch(
     `https://api.spotify.com/v1/search?q=${encodeURIComponent(
-      artistName
+      artistName,
     )}&type=artist&limit=1`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
   );
 
   const artistData = await artistRes.json();
@@ -57,7 +59,7 @@ export const searchArtistAndAlbums = async (token, artistName) => {
   const artistId = artist.id;
   const albumsRes = await fetch(
     `https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album,single&market=AR&limit=1`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
   );
 
   const albumsData = await albumsRes.json();
@@ -67,7 +69,7 @@ export const searchArtistAndAlbums = async (token, artistName) => {
 
   const tracksRes = await fetch(
     `https://api.spotify.com/v1/albums/${firstAlbum.id}/tracks?market=AR`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
   );
   const tracksData = await tracksRes.json();
 

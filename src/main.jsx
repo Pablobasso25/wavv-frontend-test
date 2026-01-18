@@ -9,15 +9,18 @@ import App from "./App.jsx";
 import { TokenProvider } from "./context/useToken.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { MusicPlayerProvider } from "./context/MusicPlayerContext.jsx";
+import { SongProvider } from "./context/SongContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
-      <TokenProvider>
-        <MusicPlayerProvider>
-          <App />
-        </MusicPlayerProvider>
-      </TokenProvider>
+      <SongProvider>
+        <TokenProvider>
+          <MusicPlayerProvider>
+            <App />
+          </MusicPlayerProvider>
+        </TokenProvider>
+      </SongProvider>
     </AuthProvider>
-  </StrictMode>
+  </StrictMode>,
 );
