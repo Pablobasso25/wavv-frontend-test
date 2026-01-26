@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+/* import { useState, useEffect } from "react";
 import { Container } from "react-bootstrap";
 import NavBar from "../../components/NavBar";
 import UsersSection from "./components/UsersSection";
@@ -43,6 +43,41 @@ const AdminScreen = () => {
         />
       </Container>
     </>
+  );
+};
+
+export default AdminScreen;
+ */
+
+import React, { useEffect } from "react";
+import { Container } from "react-bootstrap";
+import NavBar from "../../components/NavBar";
+import SongsSection from "./components/SongsSection";
+import ArtistsSection from "./components/ArtistsSection";
+import { useSongs } from "../../context/SongContext";
+
+const AdminScreen = () => {
+  const { songs, getSongs } = useSongs();
+
+  useEffect(() => {
+    getSongs(); // Trae las canciones de MongoDB Atlas
+  }, []);
+
+  return (
+    <div className="bg-black min-vh-100">
+      <NavBar />
+      <Container className="py-5">
+        <h2 className="text-white mb-4">Panel de Control</h2>
+        {/* Pasamos las canciones reales del backend */}
+        <SongsSection songs={songs} />
+        <ArtistsSection
+          albums={[]}
+          setAlbums={() => {}}
+          savedArtists={[]}
+          setSavedArtists={() => {}}
+        />
+      </Container>
+    </div>
   );
 };
 

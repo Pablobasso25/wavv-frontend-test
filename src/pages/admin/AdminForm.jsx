@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+/* import { useState, useEffect } from "react";
 import { Card, Form, Button } from "react-bootstrap";
 
 const AdminForm = ({ type = "user", editData = null, onSave = null }) => {
@@ -256,6 +256,156 @@ const AdminForm = ({ type = "user", editData = null, onSave = null }) => {
               )}
             </>
           )}
+        </Form>
+      </Card.Body>
+    </Card>
+  );
+};
+
+export default AdminForm;
+ */
+
+import { useState, useEffect } from "react";
+import { Card, Form, Button } from "react-bootstrap";
+import { useSongs } from "../../context/SongContext"; // Importamos el contexto
+
+const AdminForm = ({ type = "user", editData = null, onSave = null }) => {
+  const isUser = type === "user";
+  const isEditing = editData !== null;
+  const { createSong } = useSongs(); // Función que habla con el Backend
+
+  const [formData, setFormData] = useState(
+    isUser
+      ? { username: "", email: "", password: "" }
+      : { title: "", artist: "", url: "", cover: "", plays: "" },
+  );
+
+  useEffect(() => {
+    if (editData) setFormData(editData);
+  }, [editData]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isUser) {
+      // Lógica de usuario (puedes conectar tu authRequest aquí luego)
+      alert("Funcionalidad de gestión de usuarios en desarrollo.");
+    } else {
+      // GUARDAR CANCIÓN EN MONGODB
+      const newSong = {
+        title: formData.title,
+        artist: formData.artist,
+        youtubeUrl: formData.url,
+        image: formData.cover || "https://via.placeholder.com/300",
+        duration: "3:00", // Valor por defecto
+      };
+
+      try {
+        await createSong(newSong);
+        alert(`✅ Canción "${formData.title}" guardada en MongoDB Atlas`);
+        setFormData({ title: "", artist: "", url: "", cover: "", plays: "" });
+        if (onSave) onSave();
+      } catch (error) {
+        alert("❌ Error al guardar en el servidor");
+      }
+    }
+  };
+
+  return (
+    <Card className="mb-4 bg-dark text-white border-secondary">
+      <Card.Body>
+        <h4>
+          {isUser
+            ? isEditing
+              ? "Editar usuario"
+              : "Nuevo usuario"
+            : isEditing
+              ? "Editar canción"
+              : "Nueva canción"}
+        </h4>
+        <Form onSubmit={handleSubmit}>
+          {isUser ? (
+            <>
+              <Form.Group className="mb-2">
+                <Form.Label>Nombre</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Contraseña</Form.Label>
+                <Form.Control
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required={!isEditing}
+                />
+              </Form.Group>
+            </>
+          ) : (
+            <>
+              <Form.Group className="mb-2">
+                <Form.Label>Título</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>Artista</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="artist"
+                  value={formData.artist}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>URL del audio</Form.Label>
+                <Form.Control
+                  type="url"
+                  name="url"
+                  value={formData.url}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>URL de portada</Form.Label>
+                <Form.Control
+                  type="url"
+                  name="cover"
+                  value={formData.cover}
+                  onChange={handleChange}
+                />
+              </Form.Group>
+            </>
+          )}
+          <Button type="submit" variant={isUser ? "primary" : "success"}>
+            {isEditing ? "Guardar cambios" : "Agregar"}
+          </Button>
         </Form>
       </Card.Body>
     </Card>

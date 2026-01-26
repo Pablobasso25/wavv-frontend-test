@@ -5,16 +5,12 @@ import { useAuth } from "../context/AuthContext";
 const ProtectedRoute = ({ adminOnly = false }) => {
   const { user, isAuthenticated, loading } = useAuth();
 
-  // Mientras se verifica el token en el backend, mostramos un spinner o nada
-  if (loading) return <h1>Cargando...</h1>;
+  if (loading) return <div className="bg-black vh-100 text-white d-flex align-items-center justify-content-center"><h1>Cargando...</h1></div>;
 
-  // Si no está autenticado y terminó de cargar
-  if (!loading && !isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  // Si es una ruta de admin y el usuario no tiene ese rol
   if (adminOnly && user?.role !== "admin") return <Navigate to="/" replace />;
 
-  // Si todo está bien, renderiza los hijos (NavBar, Home, etc.)
   return <Outlet />;
 };
 

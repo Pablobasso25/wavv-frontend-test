@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { loginRequest, registerRequest, verifyTokenRequest, logoutRequest } from "../api/auth";
-import Cookies from "js-cookie"; 
+import {
+  loginRequest,
+  registerRequest,
+  verifyTokenRequest,
+  logoutRequest,
+} from "../api/auth";
+import Cookies from "js-cookie";
 
 const AuthContext = createContext();
 
@@ -13,11 +18,14 @@ export const AuthProvider = ({ children }) => {
   // 1. FUNCIÓN DE REGISTRO
   const signup = async (user) => {
     try {
+      // llama a registerRequest(user) (de auth.js)
       const res = await registerRequest(user);
       setUser(res.data);
-      setIsAuthenticated(true);
+      setIsAuthenticated(true); // <--- VITAL para que ProtectedRoute te deje pasar
+      return res.data;
     } catch (error) {
-      setErrors(error.response.data); // Guardamos los errores que manda el Back
+      setErrors(error.response.data);
+      throw error;
     }
   };
 
@@ -38,10 +46,10 @@ export const AuthProvider = ({ children }) => {
 
   // 3. FUNCIÓN DE LOGOUT
   const logout = async () => {
-    await logoutRequest();
-    Cookies.remove("token");
-    setIsAuthenticated(false);
-    setUser(null);
+    await logoutRequest(); // 1. Le avisa al Backend que limpie la sesión.
+    Cookies.remove("token"); // 2. Borra la "llave" física del navegador.
+    setIsAuthenticated(false); // 3. Apaga el interruptor global.
+    setUser(null); // 4. Borra los datos del usuario de la memoria.
   };
 
   // 4. VERIFICAR LOGIN AL CARGAR LA PÁGINA
@@ -49,13 +57,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     async function checkLogin() {
       const cookies = Cookies.get();
-      
+
+      // 1. Si NO existe el token, el usuario no está logueado
       if (!cookies.token) {
         setIsAuthenticated(false);
         setLoading(false);
         return setUser(null);
       }
 
+      // 2. Si existe el token, verificamos con el backend
       try {
         const res = await verifyTokenRequest(cookies.token);
         if (!res.data) {
@@ -73,11 +83,13 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     }
-    checkLogin();
-  }, []);
+    checkLogin(); // Llamamos a la función
+  }, []); // Se ejecuta una sola vez al cargar la app
 
   return (
-    <AuthContext.Provider value={{ signup, login, logout, user, isAuthenticated, errors, loading }}>
+    <AuthContext.Provider
+      value={{ signup, login, logout, user, isAuthenticated, errors, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -85,12 +97,7 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => useContext(AuthContext);
 
-
-
-
-
 // CODIGO VIEJO ///
-
 
 /* import React, { createContext, useContext, useEffect, useState } from "react";
 import { defaultAdmin, defaultUsers, defaultSongs } from "../data/dataDefault";

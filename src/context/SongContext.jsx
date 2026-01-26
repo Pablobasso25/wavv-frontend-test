@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState } from "react";
-import { getSongsRequest, createSongRequest } from "../api/songs";
+import {
+  searchExternalSongsRequest,
+  getSongsRequest,
+  createSongRequest,
+  addSongToPlaylistRequest,
+} from "../api/songs";
 
 const SongContext = createContext();
 
@@ -11,27 +16,66 @@ export const useSongs = () => {
 
 export function SongProvider({ children }) {
   const [songs, setSongs] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
 
+  // Obtener canciones de MongoDB
   const getSongs = async () => {
     try {
       const res = await getSongsRequest();
       setSongs(res.data);
     } catch (error) {
-      console.error(error);
+      console.error("Error al obtener canciones de DB:", error);
     }
   };
 
+  // Crear canción en MongoDB
   const createSong = async (song) => {
     try {
       const res = await createSongRequest(song);
       setSongs([...songs, res.data]);
     } catch (error) {
-      console.error(error);
+      console.error("Error al crear canción:", error);
     }
   };
 
+  //Buscar canciones en iTunes a travez de nuestra base de datos
+  const searchExternalSongs = async (searchTerm) => {
+    try {
+      const res = await searchExternalSongsRequest(searchTerm);
+      setSearchResults(res.data);
+      return res.data;
+    } catch (error) {
+      console.error("Error en búsqueda externa:", error);
+      setSearchResults([]);
+    }
+  };
+
+  // agregar cnciones a la playlist
+  const addSongToPlaylist = async (songId) => {
+    try {
+      // Llamada a la ruta del backend que configuramos en songs.js
+      const res = await addSongToPlaylistRequest(songId);
+      return { success: true, data: res.data };
+    } catch (error) {
+      // Si el backend devuelve 403, devolvemos el error para manejarlo en el componente
+      return {
+        success: false,
+        status: error.response?.status,
+        code: error.response?.data.code,
+      };
+    }
+  };
   return (
-    <SongContext.Provider value={{ songs, getSongs, createSong }}>
+    <SongContext.Provider
+      value={{
+        songs,
+        getSongs,
+        createSong,
+        searchExternalSongs,
+        searchResults,
+        addSongToPlaylist,
+      }}
+    >
       {children}
     </SongContext.Provider>
   );

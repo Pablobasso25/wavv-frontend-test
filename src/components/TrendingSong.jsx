@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+/* import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useMusicPlayer } from "../context/MusicPlayerContext";
 
@@ -79,6 +79,58 @@ const TrendingSong = () => {
             alt={trendingSong.title}
             width="250"
             height="250"
+            className="img-fluid rounded-3"
+          />
+        </Col>
+      </Row>
+    </Container>
+  );
+};
+
+export default TrendingSong;
+ */
+
+import React from "react";
+import { Container, Row, Col, Button } from "react-bootstrap";
+import { useMusicPlayer } from "../context/MusicPlayerContext";
+
+const TrendingSong = ({ song }) => {
+  const { playSong } = useMusicPlayer();
+
+  if (!song) return null;
+
+  return (
+    <Container style={{ width: "60vw", margin: "1rem" }}>
+      <Row
+        className="align-items-center p-4 rounded-4"
+        style={{ backgroundColor: "#000" }}
+      >
+        <Col md={7} className="d-flex flex-column gap-3">
+          <h2 className="display-5 text-white">{song.title}</h2>
+          <h4 className="text-white-50">{song.artist}</h4>
+          <div className="d-flex gap-3 mt-4">
+            <Button
+              variant="primary"
+              className="px-4 py-2 rounded-pill"
+              onClick={() =>
+                playSong({
+                  title: song.title,
+                  artist: song.artist,
+                  cover: song.image,
+                  audio: song.youtubeUrl,
+                  name: song.title,
+                })
+              }
+            >
+              <i className="bx bx-play me-2"></i> Reproducir
+            </Button>
+          </div>
+        </Col>
+        <Col md={4} className="d-flex justify-content-center">
+          <img
+            src={song.image}
+            alt={song.title}
+            width="250"
             className="img-fluid rounded-3"
           />
         </Col>
