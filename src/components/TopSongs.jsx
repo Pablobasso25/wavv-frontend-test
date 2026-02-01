@@ -476,6 +476,7 @@ const TopSongs = ({ album, fromHome = false }) => {
 
     const result = await addSongToPlaylist(trackId);
 
+    // cuando obtiene una respuesta del backend esjecuta estas siguientes opciones
     if (result.success) {
       Swal.fire({
         icon: "success",
@@ -589,7 +590,6 @@ const TopSongs = ({ album, fromHome = false }) => {
                 </div>
 
                 <div className="actions d-flex align-items-center gap-3">
-                  {/* ICONO DE AGREGAR (+) */}
                   <i
                     className="bx bxs-plus-square text-secondary fs-4"
                     style={{ cursor: "pointer" }}
