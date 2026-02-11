@@ -12,16 +12,28 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [errors, setErrors] = useState([]); // Para mostrar errores de Zod en el Front
+  const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. FUNCIÓN DE REGISTRO
+  const checkPermission = (action, currentCount) => {
+    if (!user) return false;
+    if (user.subscription === "premium") return true;
+
+    if (action === "add_to_playlist" && currentCount >= 5) {
+      // Aquí va el Toast o Modal de "Pasate a Premium"
+      return false;
+    }
+    if (action === "skip_song" && currentCount >= 3) {
+      return false;
+    }
+    return true;
+  };
+
   const signup = async (user) => {
     try {
-      // llama a registerRequest(user) (de auth.js)
       const res = await registerRequest(user);
       setUser(res.data);
-      setIsAuthenticated(true); // <--- VITAL para que ProtectedRoute te deje pasar
+      setIsAuthenticated(true);
       return res.data;
     } catch (error) {
       setErrors(error.response.data);
@@ -29,43 +41,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 2. FUNCIÓN DE LOGIN
   const login = async (user) => {
     try {
       const res = await loginRequest(user);
       setUser(res.data);
       setIsAuthenticated(true);
+      setErrors([]);
     } catch (error) {
-      // Si el error es un array (de Zod) lo guardamos, sino creamos uno con el mensaje
-      if (Array.isArray(error.response.data)) {
-        return setErrors(error.response.data);
+      const errorData = error.response?.data;
+
+      if (Array.isArray(errorData)) {
+        setErrors(errorData);
+      } else if (errorData?.message) {
+        setErrors([errorData.message]);
+      } else {
+        setErrors(["Error de conexión con el servidor"]);
       }
-      setErrors([error.response.data.message]);
     }
   };
 
-  // 3. FUNCIÓN DE LOGOUT
   const logout = async () => {
-    await logoutRequest(); // 1. Le avisa al Backend que limpie la sesión.
-    Cookies.remove("token"); // 2. Borra la "llave" física del navegador.
-    setIsAuthenticated(false); // 3. Apaga el interruptor global.
-    setUser(null); // 4. Borra los datos del usuario de la memoria.
+    await logoutRequest();
+    Cookies.remove("token");
+    setIsAuthenticated(false);
+    setUser(null);
   };
 
-  // 4. VERIFICAR LOGIN AL CARGAR LA PÁGINA
-  // Esto reemplaza al localStorage.getItem("user")
   useEffect(() => {
     async function checkLogin() {
       const cookies = Cookies.get();
-
-      // 1. Si NO existe el token, el usuario no está logueado
       if (!cookies.token) {
         setIsAuthenticated(false);
         setLoading(false);
         return setUser(null);
       }
-
-      // 2. Si existe el token, verificamos con el backend
       try {
         const res = await verifyTokenRequest(cookies.token);
         if (!res.data) {
@@ -83,12 +92,21 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     }
-    checkLogin(); // Llamamos a la función
-  }, []); // Se ejecuta una sola vez al cargar la app
+    checkLogin();
+  }, []);
 
   return (
     <AuthContext.Provider
-      value={{ signup, login, logout, user, isAuthenticated, errors, loading }}
+      value={{
+        signup,
+        login,
+        logout,
+        user,
+        isAuthenticated,
+        errors,
+        loading,
+        checkPermission,
+      }}
     >
       {children}
     </AuthContext.Provider>

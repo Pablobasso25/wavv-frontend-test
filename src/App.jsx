@@ -118,89 +118,120 @@ const { isAuthenticated, loading } = useAuth();
 
 export default App; */
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import RegisterScreen from "./pages/RegisterScreen";
+import { useState, useEffect } from "react";
+import RegisterScreen from "./pages/register/RegisterScreen";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import HomeScreen from "./pages/HomeScreen";
+import HomeScreen from "./pages/home/HomeScreen";
 import NavBar from "./components/NavBar";
-import WelcomeScreen from "./pages/WelcomeScreen";
-import PlaylistScreen from "./pages/PlaylistScreen";
-import LoginScreen from "./pages/LoginScreen";
+import WelcomeScreen from "./pages/welcome/WelcomeScreen";
+import PlaylistScreen from "./pages/playlist/PlaylistScreen";
+import LoginScreen from "./pages/login/LoginScreen";
 import AdminScreen from "./pages/admin/AdminScreen";
-import SubscriptionScreen from "./pages/SubscriptionScreen";
+import Footer from "./components/Footer";
+import Error404Screen from "./pages/error404/Error404Screen";
+import AboutUs from "./pages/aboutUs/AboutUsScreen";
+import ProfileScreen from "./pages/profile/ProfileScreen.jsx";
+import SubscriptionScreen from "./pages/subscription/SubscriptionScreen.jsx";
 import { useAuth } from "./context/AuthContext";
 
 const App = () => {
   const [welcome, setWelcome] = useState(true);
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const timer = setTimeout(() => setWelcome(false), 3000);
-    return () => clearTimeout(timer);
+    const loading = setTimeout(() => setWelcome(false), 3000);
+    return () => clearTimeout(loading);
   }, []);
 
   if (welcome) return <WelcomeScreen />;
-  if (loading) return <div className="bg-black vh-100"></div>;
-
   return (
     <Router>
       <Routes>
-        {/* Rutas Públicas */}
         <Route
           path="/login"
-          element={!isAuthenticated ? <LoginScreen /> : <Navigate to="/" />}
+          element={
+            !isAuthenticated ? (
+              <LoginScreen show={true} handleClose={() => {}} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
         />
         <Route
           path="/register"
-          element={!isAuthenticated ? <RegisterScreen /> : <Navigate to="/" />}
+          element={
+            <>
+              <RegisterScreen />
+            </>
+          }
         />
-
-        {/* Rutas Protegidas usando OUTLET */}
-        <Route element={<ProtectedRoute />}>
-          <Route
-            path="/"
-            element={
-              <>
-                <NavBar />
-                <HomeScreen />
-              </>
-            }
-          />
-          <Route
-            path="/playlist"
-            element={
-              <>
-                <NavBar />
-                <PlaylistScreen />
-              </>
-            }
-          />
-          <Route
-            path="/subscriptions"
-            element={
-              <>
-                <NavBar />
-                <SubscriptionScreen />
-              </>
-            }
-          />
-        </Route>
-
-        {/* Ruta Protegida de ADMIN usando OUTLET */}
-        <Route element={<ProtectedRoute adminOnly={true} />}>
-          <Route path="/admin" element={<AdminScreen />} />
-        </Route>
-
         <Route
-          path="*"
-          element={<Navigate to={isAuthenticated ? "/" : "/login"} />}
+          path="/"
+          element={
+            <ProtectedRoute>
+              <NavBar />
+              <HomeScreen />
+              <Footer />
+            </ProtectedRoute>
+          }
         />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <NavBar />
+              <ProfileScreen />
+              <Footer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminScreen />
+              <Footer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/playlist"
+          element={
+            <ProtectedRoute>
+              <NavBar />
+              <PlaylistScreen />
+              <Footer />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/about-us"
+          element={
+            <>
+              <NavBar />
+              <AboutUs />
+              <Footer />
+            </>
+          }
+        />
+        <Route
+          path="/subscription"
+          element={
+            <ProtectedRoute>
+              <NavBar />
+              <SubscriptionScreen />
+              <Footer />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Error404Screen />} />
       </Routes>
     </Router>
   );

@@ -171,3 +171,42 @@ body {
 .search-result-item:last-child {
     border-bottom: none !important;
 }
+
+/* Home Layout */
+.home-layout {
+    display: flex;
+    min-height: 100vh;
+    padding-top: 70px;
+    background: linear-gradient(#050505, #464040);
+}
+
+.home-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.home-player {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+}
+
+@media (max-width: 992px) {
+    .home-layout {
+        flex-direction: column;
+    }
+    
+    .home-player {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        top: auto;
+        transform: none;
+    }
+}

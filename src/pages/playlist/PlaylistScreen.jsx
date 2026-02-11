@@ -112,10 +112,10 @@ export default PlaylistScreen;
 
 import React, { useState } from "react";
 import { Col } from "react-bootstrap";
-import ArtistasSidebar from "../components/ArtistasSidebar";
-import MusicPlayer from "../components/MusicPlayer";
-import TopSongs from "../components/TopSongs";
-import { useSongs } from "../context/SongContext";
+import ArtistasSidebar from "../../components/ArtistasSidebar";
+import MusicPlayer from "../../components/musicPlayer/MusicPlayer";
+import TopSongs from "../../components/TopSongs";
+import { useSongs } from "../../context/SongContext";
 
 const PlaylistScreen = () => {
   const [selectedAlbum, setSelectedAlbum] = useState(null);

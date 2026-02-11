@@ -18,7 +18,6 @@ export function SongProvider({ children }) {
   const [songs, setSongs] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
 
-  // Obtener canciones de MongoDB
   const getSongs = async () => {
     try {
       const res = await getSongsRequest();
@@ -27,8 +26,6 @@ export function SongProvider({ children }) {
       console.error("Error al obtener canciones de DB:", error);
     }
   };
-
-  // Crear canción en MongoDB
   const createSong = async (song) => {
     try {
       const res = await createSongRequest(song);
@@ -37,8 +34,6 @@ export function SongProvider({ children }) {
       console.error("Error al crear canción:", error);
     }
   };
-
-  //Buscar canciones en iTunes a travez de nuestra base de datos
   const searchExternalSongs = async (searchTerm) => {
     try {
       const res = await searchExternalSongsRequest(searchTerm);
@@ -49,8 +44,6 @@ export function SongProvider({ children }) {
       setSearchResults([]);
     }
   };
-
-  // agregar cnciones a la playlist
   const addSongToPlaylist = async (songId) => {
     try {
       // Llamada a la ruta del backend que configuramos en songs.js

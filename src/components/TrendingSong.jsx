@@ -98,16 +98,19 @@ const TrendingSong = ({ song }) => {
   const { playSong } = useMusicPlayer();
 
   if (!song) return null;
-
   return (
-    <Container style={{ width: "60vw", margin: "1rem" }}>
+    <Container fluid className="px-2 px-lg-3 mb-3">
       <Row
-        className="align-items-center p-4 rounded-4"
-        style={{ backgroundColor: "#000" }}
+        className="align-items-center p-3 p-lg-4 rounded-4 mx-0"
+        style={{ backgroundColor: "#000000ff" }}
       >
-        <Col md={7} className="d-flex flex-column gap-3">
-          <h2 className="display-5 text-white">{song.title}</h2>
-          <h4 className="text-white-50">{song.artist}</h4>
+        <Col
+          xs={12}
+          md={7}
+          className="d-flex flex-column gap-2 gap-lg-3 mb-3 mb-md-0"
+        >
+          <h2 className="h3 h2-lg">{song.title}</h2>
+          <h4 className="h5 h4-lg">{song.artist}</h4>
           <div className="d-flex gap-3 mt-4">
             <Button
               variant="primary"
@@ -124,9 +127,14 @@ const TrendingSong = ({ song }) => {
             >
               <i className="bx bx-play me-2"></i> Reproducir
             </Button>
+            <i
+              className="bx bxs-heart text-primary fs-5 border border-white rounded-circle p-2"
+              style={{ cursor: "pointer" }}
+              title="Agregar a favoritos"
+            ></i>
           </div>
         </Col>
-        <Col md={4} className="d-flex justify-content-center">
+        <Col xs={12} md={4} className="d-flex justify-content-center">
           <img
             src={song.image}
             alt={song.title}

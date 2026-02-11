@@ -469,14 +469,9 @@ const TopSongs = ({ album, fromHome = false }) => {
   const { playSong, currentSong, isPlaying } = useMusicPlayer();
   const { addSongToPlaylist } = useSongs();
   const navigate = useNavigate();
-
-  // Función para manejar el guardado en la base de datos
   const handleAddClick = async (e, trackId) => {
-    e.stopPropagation(); // Detiene el click para que NO se reproduzca la canción
-
+    e.stopPropagation(); 
     const result = await addSongToPlaylist(trackId);
-
-    // cuando obtiene una respuesta del backend esjecuta estas siguientes opciones
     if (result.success) {
       Swal.fire({
         icon: "success",
@@ -487,9 +482,8 @@ const TopSongs = ({ album, fromHome = false }) => {
         color: "#fff",
       });
     } else if (result.status === 403 && result.code === "PREMIUM_REQUIRED") {
-      // Si el backend nos rebota por el límite de 5 canciones:
       Swal.fire({
-        title: "⭐ ¡Pásate a Premium!",
+        title: " ¡Pásate a Premium!",
         text: "Alcanzaste el límite de 5 canciones gratis. Suscríbete para tener playlist ilimitada.",
         icon: "info",
         showCancelButton: true,
@@ -503,7 +497,6 @@ const TopSongs = ({ album, fromHome = false }) => {
       });
     }
   };
-
   if (!album || !album.tracks || album.tracks.length === 0) {
     return (
       <Col xs={12}>
@@ -516,8 +509,77 @@ const TopSongs = ({ album, fromHome = false }) => {
       </Col>
     );
   }
-
   return (
+    <Container fluid className="px-2 px-lg-3">
+      <div
+        className="music-list p-3 rounded-4"
+        style={{
+          backgroundColor: "#111111",
+          height: fromHome ? "auto" : "80vh",
+          overflowY: "auto",
+        }}>
+        <h5 className="text-white mb-3">Canciones de {album.name}</h5>
+        <div className="items">
+          {album.tracks.map((track, index) => {
+            const isCurrentTrack = currentSong?.title === track.name;
+            return (
+              <div
+                key={index}
+                className="item d-flex align-items-center justify-content-between p-3 rounded-3 mb-2 cursor-pointer"
+                style={{ backgroundColor: "#191B1B" }}
+                onClick={() => {
+                  const songToPlay = {
+                    title: track.name,
+                    artist: album.name,
+                    cover: track.cover || album.image,
+                    audio: track.preview_url || track.audio || track.youtubeUrl,
+                  };
+                  const fullAlbumQueue = album.tracks.map((t) => ({
+                    title: t.name,
+                    artist: album.name,
+                    cover: t.cover || album.image,
+                    audio: t.preview_url || t.audio || t.youtubeUrl,
+                  }));
+                  playSong(songToPlay, fullAlbumQueue);
+                }}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <span className="text-white">{index + 1}</span>
+                  <img
+                    src={track.cover || album.image}
+                    width="40"
+                    height="40"
+                    className="rounded"
+                    alt=""
+                  />
+                  <h6
+                    className="mb-0 small"
+                    style={{ color: isCurrentTrack ? "#5773ff" : "white" }}
+                  >
+                    {track.name}
+                  </h6>
+                </div>
+                <div className="actions d-flex align-items-center gap-3">
+                  <i
+                    className="bx bxs-plus-square text-secondary fs-4"
+                    onClick={(e) => handleAddClick(e, track._id || track.id)}
+                  ></i>
+                  <i
+                    className={`bx ${isCurrentTrack && isPlaying ? "bx-pause" : "bx-play"} fs-2 text-white`}
+                  ></i>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Container>
+  );
+};
+
+export default TopSongs;
+
+/*  return (
     <Container fluid className="px-2 px-lg-3">
       <div
         className="music-list p-3 rounded-4"
@@ -621,3 +683,4 @@ const TopSongs = ({ album, fromHome = false }) => {
 };
 
 export default TopSongs;
+ */
