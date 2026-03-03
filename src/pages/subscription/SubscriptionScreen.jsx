@@ -1,36 +1,29 @@
 import React, { useState } from "react";
-import "./SubscriptionScreen.css";
+import "./SubscriptonScreen.css";
 import { Container, Row, Col, Card, Button, ListGroup } from "react-bootstrap";
-/* import axios from "../../api/axios";  */
+import { createPreferenceRequest } from "../../api/payment";
 import { useAuth } from "../../context/AuthContext";
 import Swal from "sweetalert2";
 
+const PLAN_PRICES = {
+  PREMIUM: 6000,
+  FAMILIAR: 15000,
+};
 const SubscriptionScreen = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-
+  const isPremium = user?.subscription?.status === "premium";
+  const isFamiliar = user?.subscription?.status === "familiar";
+  const isFree = !isPremium && !isFamiliar;
   const handleBuy = async (planType, price) => {
-    setLoading(true);
     try {
-      const res = await axios.post("/payments/create-preference", {
-        title: `Plan ${planType} Wavv Music`,
-        price: price,
-        quantity: 1,
-      });
-      if (res.data.init_point) {
-        window.location.href = res.data.init_point;
-      }
+      const res = await createPreferenceRequest({ planType, price });   
+      const initPoint =
+        res.data?.init_point || res.data?.initPoint || res.init_point;
+      if (initPoint) {
+        window.location.href = initPoint;
+      } 
     } catch (error) {
-      console.error("Error al iniciar el pago", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo conectar con Mercado Pago. Intenta más tarde.",
-        background: "#111",
-        color: "#fff",
-      });
-    } finally {
-      setLoading(false);
     }
   };
   return (
@@ -67,11 +60,21 @@ const SubscriptionScreen = () => {
                 </ListGroup.Item>
               </ListGroup>
               <Button
-                variant="outline-secondary"
-                className="mt-auto w-100"
                 disabled
+                className="mt-auto w-100 py-2 btn-expand"
+                style={{
+                  backgroundColor: "#6c757d",
+                  color: "#000000",
+                  border: "none",
+                  cursor: "not-allowed",
+                }}
               >
-                Tu plan actual
+                <span className="btn-icon">
+                  <i className="bx bx-lock"></i>
+                </span>
+                <span className="btn-text">
+                  {isFree ? "Tu plan actual" : "Plan Gratuito"}
+                </span>
               </Button>
             </Card.Body>
           </Card>
@@ -118,21 +121,25 @@ const SubscriptionScreen = () => {
                 </ListGroup.Item>
               </ListGroup>
               <Button
-                onClick={() => handleBuy("Familiar", 750)}
-                disabled={loading}
+                onClick={() => handleBuy("Premium", PLAN_PRICES.PREMIUM)}
+                disabled={loading || isPremium}
                 className="mt-auto w-100 py-2  btn-expand"
                 style={{
-                  backgroundColor: "#198754",
+                  backgroundColor: isPremium ? "#6c757d" : "#198754",
                   color: "#000000",
                   border: "none",
+                  cursor: isPremium ? "not-allowed" : "pointer",
                 }}
               >
                 <span className="btn-icon">
-                  <i className="bx bx-cart"></i>
+                  <i className={`bx ${isPremium ? "bx-lock" : "bx-cart"}`}></i>
                 </span>
-
                 <span className="btn-text">
-                  {loading ? "Procesando..." : "Suscribirme ahora"}
+                  {isPremium
+                    ? "Tu plan actual"
+                    : loading
+                      ? "Procesando..."
+                      : "Suscribirme ahora"}
                 </span>
               </Button>
             </Card.Body>
@@ -184,21 +191,19 @@ const SubscriptionScreen = () => {
                 </ListGroup.Item>
               </ListGroup>
               <Button
-                onClick={() => handleBuy("Familiar", 750)}
-                disabled={loading}
+                disabled
                 className="mt-auto w-100 py-2  btn-expand"
                 style={{
-                  backgroundColor: "#0dcaf0",
-                  color: "#000000",
+                  backgroundColor: "#6c757d",
+                  color: "#ffffff",
                   border: "none",
+                  cursor: "not-allowed",
+                  fontWeight: "600",
+                  fontSize: "0.95rem",
                 }}
               >
-                <span className="btn-icon">
-                  <i className="bx bx-cart"></i>
-                </span>
-
-                <span className="btn-text">
-                  {loading ? "Procesando..." : "Suscribirme ahora"}
+                <span className="btn-text" style={{ maxWidth: "200px", opacity: 1, marginLeft: 0 }}>
+                  Próximamente
                 </span>
               </Button>
             </Card.Body>

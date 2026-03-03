@@ -4,7 +4,6 @@ const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-// Inicializamos una sola vez
 emailjs.init(PUBLIC_KEY);
 
 export const sendWelcomeEmail = async (username, email) => {
@@ -14,7 +13,6 @@ export const sendWelcomeEmail = async (username, email) => {
     from_name: "Wavv Music",
     date: new Date().toLocaleDateString(),
   };
-
   try {
     const response = await emailjs.send(
       SERVICE_ID,
@@ -27,23 +25,20 @@ export const sendWelcomeEmail = async (username, email) => {
     throw error;
   }
 };
-
 const TEMPLATE_GENERICO = import.meta.env.VITE_EMAILJS_TEMPLATE_GENERICO;
 
-// 1. Email para cuando se pasa a PREMIUM
 export const sendPremiumEmail = async (username, email) => {
   const data = {
-    username,
-    email,
-    dynamic_issue: "¡Ya sos parte de la experiencia Wavv Music!",
+    username: username,
+    email: email,
+    dynamic_issue: "¡Ya sos parte de la experiencia de Wavv Music!",
     body_message:
-      "¡Felicidades! Ahora tenés acceso ilimitado, sin anuncios y con la mejor calidad de sonido en Wavv Music. Gracias por ser parte de nuestra comunidad.",
-    date: new Date().toLocaleDateString(),
+      "¡Felicidades! Ahora tenes acceso limitado, sin anuncios y con la mejor calidad de sonido en Wavv Music. Gracias por ser parte de nuestra comunidad.",
+    data: new Date().toLocaleDateString(),
   };
   return sendNotification(data);
 };
 
-// 2. Email "Gancho" para Baja o vuelta a Free
 export const sendRetentionEmail = async (username, email) => {
   const data = {
     username,
@@ -51,12 +46,11 @@ export const sendRetentionEmail = async (username, email) => {
     dynamic_issue: "Te vamos a extrañar",
     body_message:
       "Tu cuenta ha vuelto al plan Free. Recordá que siempre podés volver a Premium para disfrutar de música sin interrupciones. ¡Tenemos una oferta especial esperándote!",
-    date: new Date().toLocaleDateString(),
+    data: new Date().toLocaleDateString(),
   };
   return sendNotification(data);
 };
 
-// Función base que usa la plantilla genérica
 const sendNotification = async (data) => {
   const params = {
     to_name: data.username,
@@ -64,6 +58,7 @@ const sendNotification = async (data) => {
     dynamic_issue: data.dynamic_issue,
     body_message: data.body_message,
     from_name: "Wavv Music",
+    date: data.data,
   };
   return await emailjs.send(SERVICE_ID, TEMPLATE_GENERICO, params);
 };

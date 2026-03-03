@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Modal } from "react-bootstrap";
 import {
   Container,
   Row,
@@ -15,15 +15,12 @@ import {
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { registerRequest } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
-import { sendWelcomeEmail } from "../../services/emailService";
-import "./RegisterScreen.css"
+import "./RegisterScreen.css";
 
-const RegisterScreen = () => {
+const RegisterScreen = ({ show, handleClose, onSwitchToLogin }) => {
   const [send, setSend] = useState(false);
   const [errorEmail, setErrorEmail] = useState("");
-  const [emailEnviado, setEmailEnviado] = useState(false);
   const { signup, errors: registerErrors } = useAuth();
   const {
     register,
@@ -39,14 +36,11 @@ const RegisterScreen = () => {
       confirmarPassword: "",
     },
   });
-
   const navigate = useNavigate();
   const password = watch("password");
   const username = watch("username");
-
   const validatePassword = (password) => {
     if (!password) return { force: 0, validations: {} };
-
     const validations = {
       longitud: password.length >= 8,
       mayuscula: /[A-Z]/.test(password),
@@ -61,9 +55,7 @@ const RegisterScreen = () => {
         password,
       ),
     };
-
     let force = 0;
-
     force += Math.min(password.length * 4, 32);
     if (validations.longitud) force += 10;
     if (validations.mayuscula) force += 10;
@@ -72,15 +64,12 @@ const RegisterScreen = () => {
     if (validations.simbolo) force += 18;
     if (validations.noEspacios) force += 5;
     if (validations.diferenteAlUsername) force += 5;
-
     return {
       force: Math.min(force, 100),
       validations,
     };
   };
-
   const { force: forcePassword, validations } = validatePassword(password);
-
   const informationForce = () => {
     if (forcePassword === 0)
       return { texto: "No ingresado", variant: "secondary" };
@@ -89,22 +78,14 @@ const RegisterScreen = () => {
     if (forcePassword < 99) return { texto: "Buena", variant: "info" };
     return { texto: "Segura", variant: "success" };
   };
-
   const infoForce = informationForce();
-
-  const showSuccessAlert = (emailEnviado = true) => {
-    const mensaje = emailEnviado
-      ? "¡Te hemos enviado un email de bienvenida! Entrando a Wavv Music..."
-      : "⚠️ Registro exitoso. ¡Ya puedes empezar a escuchar música!";
-
+  const showSuccessAlert = () => {
     Swal.fire({
       title: "✔️ ¡Bienvenido!",
       html: `
         <div style="text-align: center;">
           <p style="margin-bottom: 10px; font-size: 16px;">Tu cuenta ha sido creada con éxito en <strong>Wavv Music</strong>.</p>
-          <p style="margin-bottom: 0; font-size: 14px; color: ${
-            emailEnviado ? "#b0b0b0" : "#ffc107"
-          };">${mensaje}</p>
+          <p style="margin-bottom: 0; font-size: 14px; color: #b0b0b0;">¡Te hemos enviado un email de bienvenida! Entrando a Wavv Music...</p>
         </div>
       `,
       icon: "success",
@@ -116,42 +97,9 @@ const RegisterScreen = () => {
       timer: 3000,
       timerProgressBar: true,
     }).then(() => {
-      //  navegación al Home si todo sale bien
       navigate("/");
     });
   };
-
-  /* onSubmit es el más importante:
-  if (forcePassword < 99) { ... return; } :
-   Antes de siquiera intentar hablar con el servidor, revisas la fuerza de la contraseña.
-   Si no es "Muy Fuerte", lanzas una alerta de error y usas un return. Ese return es fundamental: detiene la función ahí mismo 
-   y no deja que el código siga hacia el backend. 
-   
-   setSend(true) :
-    Cambias un estado para que el botón de registro muestre el "Spinner" (el circulito de carga). Esto evita que el usuario haga doble clic y envíe dos registros seguidos.
-   
-   await signup(data):
-    El código se queda "esperando" en esta línea (await).
-    Los datos viajan al puerto 4000.
-    El Backend los guarda en MongoDB y responde.
-    Si el Backend falla (ej: el email ya existe), el código salta inmediatamente al bloque catch.
-    Si el Backend tiene éxito, el código continúa a la siguiente línea.
-    
-    try { await emailjs.send(...); } catch (e) { ... }:
-    Una vez que el usuario ya está creado en tu base de datos, intentas mandarle un mail.Se usa un try/catch dentro del otro. Esto es porque si falla el envío del mail (por ejemplo, te quedaste sin cuota en EmailJS), no queremos que el registro del usuario falle. El usuario ya está guardado en tu DB, el mail es solo un "plus".
-    
-    showSuccessAlert(true): 
-    Si todo lo anterior salió bien, se dispara la alerta visual de "¡Registro Exitoso!" que finalmente redirige al usuario al Login
-    
-    catch (error) 
-    - const serverErrors = error.response?.data : 
-    Aquí estás diciendo: "Guarda en la variable serverErrors el mensaje que mandó el Backend, pero si no hay conexión con el Backend, no rompas la página".
-    - text: Array.isArray(serverErrors) ? serverErrors[0] : "Error de conexión":
-    Si el Backend mandó errores de Zod: serverErrors es un array, entonces muestra el primer error.
-    Si el Backend estaba apagado: serverErrors es undefined, entonces el programa elige mostrar el texto "Error de conexión".
-    
-    finally { setSend(false):
-    Pase lo que pase (éxito o error), apagamos el "spinner" de carga para que el formulario vuelva a estar disponible.*/
   const onSubmit = async (data) => {
     if (forcePassword < 99) {
       Swal.fire({
@@ -165,21 +113,10 @@ const RegisterScreen = () => {
       });
       return;
     }
-
     setSend(true);
     try {
-      // 1. Registro en el backend
       await signup(data);
-
-      // 2. Intento de envío de mail (esto no debe frenar el registro)
-      try {
-        await sendWelcomeEmail(data.username, data.email);
-      } catch (error) {
-        console.error("Error al enviar email:", error);
-      }
-
-      // 3. LA CLAVE: Llamamos a la alerta y nos aseguramos de que redireccione
-      showSuccessAlert(true);
+      showSuccessAlert();
     } catch (error) {
       const serverErrors = error.response?.data;
       let errorMessage = "Error de conexión con el servidor";
@@ -201,16 +138,18 @@ const RegisterScreen = () => {
       setSend(false);
     }
   };
-
   return (
-    <Container className="d-flex align-items-center justify-content-center vh-100 mt-2">
-      <Row className="w-100 justify-content-center">
-        <Col md={8} lg={7}>
-          <Card className="bg-dark text-white border-secondary shadow">
-            <Card.Header className="border-secondary">
-              <h4 className="text-center mb-0">Registro en WavvMusic</h4>
-            </Card.Header>
-            <Card.Body className="p-4">
+    <Modal
+      show={show}
+      onHide={handleClose}
+      centered
+      backdrop="static"
+      keyboard={false}
+      size="lg"
+      contentClassName="register-modal-content"
+    >
+      <Modal.Body className="p-4">
+        <h2 className="register-title">Crear cuenta</h2>
               {errorEmail && (
                 <Alert variant="danger" className="mb-4">
                   {errorEmail}
@@ -218,11 +157,11 @@ const RegisterScreen = () => {
               )}
               <Form onSubmit={handleSubmit(onSubmit)}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Nombre de usuario *</Form.Label>
+                  <Form.Label className="register-label">Nombre de usuario *</Form.Label>
                   <Form.Control
                     type="text"
                     placeholder="Usuario"
-                    className="bg-dark text-white border-secondary"
+                    className="register-input"
                     isInvalid={errors.username}
                     maxLength={30}
                     {...register("username", {
@@ -246,11 +185,11 @@ const RegisterScreen = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group className="mb-3">
-                  <Form.Label>Email *</Form.Label>
+                  <Form.Label className="register-label">Email *</Form.Label>
                   <Form.Control
                     type="email"
                     placeholder="ejemplo@gmail.com"
-                    className="bg-dark text-white border-secondary"
+                    className="register-input"
                     isInvalid={errors.email}
                     maxLength={50}
                     {...register("email", {
@@ -270,11 +209,11 @@ const RegisterScreen = () => {
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group className="mb-3">
-                  <Form.Label>Contraseña *</Form.Label>
+                  <Form.Label className="register-label">Contraseña *</Form.Label>
                   <Form.Control
                     type="password"
-                    placeholder="Contraseña  (8-20 caracteres)"
-                    className="bg-dark text-white border-secondary"
+                    placeholder="Contraseña (8-20 caracteres)"
+                    className="register-input"
                     isInvalid={errors.password && forcePassword < 99}
                     maxLength={20}
                     {...register("password", {
@@ -420,11 +359,11 @@ const RegisterScreen = () => {
                   )}
                 </Form.Group>
                 <Form.Group className="mb-4">
-                  <Form.Label>Confirmar contraseña *</Form.Label>
+                  <Form.Label className="register-label">Confirmar contraseña *</Form.Label>
                   <Form.Control
                     type="password"
                     placeholder="Repite tu contraseña"
-                    className="bg-dark text-white border-secondary"
+                    className="register-input"
                     isInvalid={errors.confirmarPassword}
                     maxLength={20}
                     {...register("confirmarPassword", {
@@ -446,9 +385,8 @@ const RegisterScreen = () => {
                 </Form.Group>
                 <Button
                   type="submit"
-                  className="btn-primary-custom w-100 py-2"
+                  className="register-btn w-100"
                   disabled={send || forcePassword < 99}
-                  variant={forcePassword >= 99 ? "primary" : "secondary"}
                 >
                   {send ? (
                     <>
@@ -462,17 +400,18 @@ const RegisterScreen = () => {
                   )}
                 </Button>
               </Form>
-              <p className="text-secondary mt-3 text-center">
+              <p className="register-link-text">
                 ¿Ya tienes cuenta?{" "}
-                <Link to="/login" className="text-primary text-decoration-none">
+                <span
+                  className="register-link"
+                  onClick={() => onSwitchToLogin && onSwitchToLogin()}
+                  style={{ cursor: "pointer" }}
+                >
                   Ingresar
-                </Link>
+                </span>
               </p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+      </Modal.Body>
+    </Modal>
   );
 };
 
