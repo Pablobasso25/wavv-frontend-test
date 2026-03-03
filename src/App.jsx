@@ -1,187 +1,36 @@
-/* import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState, useEffect } from "react";
-import RegisterScreen from "./pages/RegisterScreen";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import HomeScreen from "./pages/HomeScreen";
-import NavBar from "./components/NavBar";
-import WelcomeScreen from "./pages/WelcomeScreen";
-import PlaylistScreen from "./pages/PlaylistScreen";
-import LoginScreen from "./pages/LoginScreen";
-import AdminScreen from "./pages/admin/AdminScreen";
-const App = () => {
-  const [welcome, setWelcome] = useState(true);
-
-  useEffect(() => {
-    const loading = setTimeout(() => setWelcome(false), 3000);
-    return () => clearTimeout(loading);
-  }, []);
-
-  if (welcome) return <WelcomeScreen />;
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginScreen />} />
-        <Route path="/register" element={<RegisterScreen />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <NavBar />
-              <HomeScreen />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminOnly>
-              <AdminScreen />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/playlist"
-          element={
-            <ProtectedRoute>
-              <NavBar />
-              <PlaylistScreen />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
-  );
-};
-
-export default App;
- */
-
-/* import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import RegisterScreen from "./pages/RegisterScreen";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import HomeScreen from "./pages/HomeScreen";
-import NavBar from "./components/NavBar";
-import WelcomeScreen from "./pages/WelcomeScreen";
-import PlaylistScreen from "./pages/PlaylistScreen";
-import LoginScreen from "./pages/LoginScreen";
-import AdminScreen from "./pages/admin/AdminScreen";
-
-const App = () => {
-  const [welcome, setWelcome] = useState(true);
-const { isAuthenticated, loading } = useAuth();
-  useEffect(() => {
-    const loading = setTimeout(() => setWelcome(false), 3000);
-    return () => clearTimeout(loading);
-  }, []);
-
-  if (welcome) return <WelcomeScreen />;
-
-  return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginScreen />} />
-        <Route path="/register" element={<RegisterScreen />} />
-        
-        
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <NavBar />
-              <HomeScreen />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminOnly>
-              <AdminScreen />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/playlist"
-          element={
-            <ProtectedRoute>
-              <NavBar />
-              <PlaylistScreen />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </Router>
-  );
-};
-
-export default App; */
-
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { useState, useEffect } from "react";
-import RegisterScreen from "./pages/register/RegisterScreen";
+import React, { useState, useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import HomeScreen from "./pages/home/HomeScreen";
-import NavBar from "./components/NavBar";
+import NavBar from "./components/Navbar/NavBar";
 import WelcomeScreen from "./pages/welcome/WelcomeScreen";
 import PlaylistScreen from "./pages/playlist/PlaylistScreen";
-import LoginScreen from "./pages/login/LoginScreen";
 import AdminScreen from "./pages/admin/AdminScreen";
-import Footer from "./components/Footer";
+import Footer from "./components/Footer/Footer";
 import Error404Screen from "./pages/error404/Error404Screen";
 import AboutUs from "./pages/aboutUs/AboutUsScreen";
 import ProfileScreen from "./pages/profile/ProfileScreen.jsx";
 import SubscriptionScreen from "./pages/subscription/SubscriptionScreen.jsx";
 import { useAuth } from "./context/AuthContext";
+import ForgotPassword from "./pages/login/ForgotPassword.jsx";
+import ResetPassword from "./pages/login/ResetPassword.jsx";
+import ScrollToTop from "./components/scrollToTop/ScrollToTop.jsx";
+import LoginScreen from "./pages/login/LoginScreen.jsx";
+import RegisterScreen from "./pages/register/RegisterScreen.jsx";
 
 const App = () => {
   const [welcome, setWelcome] = useState(true);
-  const { isAuthenticated } = useAuth();
-
   useEffect(() => {
     const loading = setTimeout(() => setWelcome(false), 3000);
     return () => clearTimeout(loading);
   }, []);
-
   if (welcome) return <WelcomeScreen />;
+
   return (
-    <Router>
+    <>
+      <ScrollToTop />
       <Routes>
-        <Route
-          path="/login"
-          element={
-            !isAuthenticated ? (
-              <LoginScreen show={true} handleClose={() => {}} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <>
-              <RegisterScreen />
-            </>
-          }
-        />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <NavBar />
-              <HomeScreen />
-              <Footer />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<HomeScreen />} />
         <Route
           path="/profile"
           element={
@@ -196,8 +45,8 @@ const App = () => {
           path="/admin"
           element={
             <ProtectedRoute adminOnly>
+              <NavBar />
               <AdminScreen />
-              <Footer />
             </ProtectedRoute>
           }
         />
@@ -231,9 +80,41 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/"
+          element={
+            <>
+              <LoginScreen />
+            </>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <>
+              <RegisterScreen />
+            </>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <>
+              <ForgotPassword />
+            </>
+          }
+        />
+        <Route
+          path="/reset-password/:token"
+          element={
+            <>
+              <ResetPassword />
+            </>
+          }
+        />
         <Route path="*" element={<Error404Screen />} />
       </Routes>
-    </Router>
+    </>
   );
 };
 
