@@ -3,15 +3,22 @@ import { Modal, Form, InputGroup, Button, Image } from "react-bootstrap";
 import { createSongRequest, createAlbumRequest } from "../../../api/songs";
 import Swal from "sweetalert2";
 
-const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setArtists }) => {
+const SearchModal = ({
+  show,
+  onHide,
+  currentTab,
+  songs,
+  setSongs,
+  artists,
+  setArtists,
+  reloadData,
+}) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-
     setIsSearching(true);
     try {
       let url = `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&media=music&limit=10`;
@@ -19,7 +26,6 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       if (currentTab === "artists") {
         url = `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery)}&entity=album&limit=10`;
       }
-
       const response = await fetch(url);
       const data = await response.json();
       setSearchResults(data.results);
@@ -30,12 +36,10 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       setIsSearching(false);
     }
   };
-
   const addSongFromSearch = async (track) => {
     const exists = songs.some(
-      (s) => s.title === track.trackName && s.artist === track.artistName
+      (s) => s.title === track.trackName && s.artist === track.artistName,
     );
-
     if (exists) {
       Swal.fire({
         title: "Ya existe",
@@ -46,7 +50,6 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       });
       return;
     }
-
     try {
       const newSong = {
         title: track.trackName,
@@ -55,14 +58,13 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
         youtubeUrl: track.previewUrl,
         duration: track.trackTimeMillis
           ? `${Math.floor(track.trackTimeMillis / 60000)}:${String(
-              Math.floor((track.trackTimeMillis % 60000) / 1000)
+              Math.floor((track.trackTimeMillis % 60000) / 1000),
             ).padStart(2, "0")}`
           : "--:--",
       };
-
       const res = await createSongRequest(newSong);
       setSongs([...songs, res.data]);
-
+      if (reloadData) reloadData();
       Swal.fire({
         title: "¡Agregada!",
         text: `${track.trackName} se agregó correctamente.`,
@@ -82,10 +84,10 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       });
     }
   };
-
   const addArtistFromSearch = async (album) => {
-    const exists = artists.some((a) => a.album?.collectionId === album.collectionId);
-
+    const exists = artists.some(
+      (a) => a.album?.collectionId === album.collectionId,
+    );
     if (exists) {
       Swal.fire({
         title: "Ya existe",
@@ -96,14 +98,12 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       });
       return;
     }
-
     try {
       const response = await fetch(
-        `https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`
+        `https://itunes.apple.com/lookup?id=${album.collectionId}&entity=song`,
       );
       const data = await response.json();
       const tracks = data.results.slice(1);
-
       const newAlbum = {
         collectionId: album.collectionId,
         name: album.collectionName,
@@ -117,10 +117,9 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
           cover: track.artworkUrl100?.replace("100x100", "600x600"),
         })),
       };
-
       const res = await createAlbumRequest(newAlbum);
       setArtists([...artists, res.data]);
-
+      if (reloadData) reloadData();
       Swal.fire({
         title: "¡Agregado!",
         text: `${album.collectionName} se agregó correctamente.`,
@@ -140,7 +139,6 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       });
     }
   };
-
   return (
     <Modal
       show={show}
@@ -149,7 +147,11 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
       centered
       contentClassName="bg-dark text-white border-secondary"
     >
-      <Modal.Header closeButton closeVariant="white" className="border-secondary">
+      <Modal.Header
+        closeButton
+        closeVariant="white"
+        className="border-secondary"
+      >
         <Modal.Title>
           {currentTab === "artists" ? "Buscar Artista" : "Buscar Canción"}
         </Modal.Title>
@@ -169,8 +171,10 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
             </Button>
           </InputGroup>
         </Form>
-
-        <div className="search-results" style={{ maxHeight: "400px", overflowY: "auto" }}>
+        <div
+          className="search-results"
+          style={{ maxHeight: "400px", overflowY: "auto" }}
+        >
           {searchResults.length > 0 ? (
             searchResults.map((track) => (
               <div
@@ -179,10 +183,17 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
                 style={{ borderBottom: "1px solid #333" }}
               >
                 <div className="d-flex align-items-center gap-3">
-                  <Image src={track.artworkUrl100} rounded width={50} height={50} />
+                  <Image
+                    src={track.artworkUrl100}
+                    rounded
+                    width={50}
+                    height={50}
+                  />
                   <div>
                     <div className="fw-bold">
-                      {currentTab === "artists" ? track.collectionName : track.trackName}
+                      {currentTab === "artists"
+                        ? track.collectionName
+                        : track.trackName}
                     </div>
                     <div className="text-white-50 small">
                       {track.artistName}
@@ -217,8 +228,8 @@ const SearchModal = ({ show, onHide, currentTab, songs, setSongs, artists, setAr
               {isSearching
                 ? "Buscando..."
                 : searchQuery
-                ? "No se encontraron resultados"
-                : "Escribe algo para buscar"}
+                  ? "No se encontraron resultados"
+                  : "Escribe algo para buscar"}
             </div>
           )}
         </div>
