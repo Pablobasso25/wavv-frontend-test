@@ -4,6 +4,7 @@ import {
   registerRequest,
   verifyTokenRequest,
   logoutRequest,
+  updateProfileRequest,
 } from "../api/auth";
 import Cookies from "js-cookie";
 
@@ -14,20 +15,6 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const checkPermission = (action, currentCount) => {
-    if (!user) return false;
-    if (user.subscription === "premium") return true;
-
-    if (action === "add_to_playlist" && currentCount >= 5) {
-      // Aquí va el Toast o Modal de "Pasate a Premium"
-      return false;
-    }
-    if (action === "skip_song" && currentCount >= 3) {
-      return false;
-    }
-    return true;
-  };
 
   const signup = async (user) => {
     try {
@@ -49,7 +36,6 @@ export const AuthProvider = ({ children }) => {
       setErrors([]);
     } catch (error) {
       const errorData = error.response?.data;
-
       if (Array.isArray(errorData)) {
         setErrors(errorData);
       } else if (errorData?.message) {
@@ -59,12 +45,39 @@ export const AuthProvider = ({ children }) => {
       }
     }
   };
+  const updateProfile = async (user) => {
+    try {
+      const res = await updateProfileRequest(user);
+      setUser(res.data);
+      setErrors([]);
+      return res.data;
+    } catch (error) {
+      const errorData = error.response?.data;
+      setErrors(
+        Array.isArray(errorData)
+          ? errorData
+          : [errorData?.message || "Error al actualizar"],
+      );
+      throw error;
+    }
+  };
 
   const logout = async () => {
     await logoutRequest();
     Cookies.remove("token");
     setIsAuthenticated(false);
     setUser(null);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const res = await verifyTokenRequest();
+      if (res.data) {
+        setUser(res.data);
+      }
+    } catch (error) {
+      console.error("Error al encontrar usuario:", error);
+    }
   };
 
   useEffect(() => {
@@ -101,11 +114,12 @@ export const AuthProvider = ({ children }) => {
         signup,
         login,
         logout,
+        updateProfile,
+        refreshUser,
         user,
         isAuthenticated,
         errors,
         loading,
-        checkPermission,
       }}
     >
       {children}
@@ -114,60 +128,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-// CODIGO VIEJO ///
-
-/* import React, { createContext, useContext, useEffect, useState } from "react";
-import { defaultAdmin, defaultUsers, defaultSongs } from "../data/dataDefault";
-
-const AuthContext = createContext();
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    const storedUsers = JSON.parse(localStorage.getItem("users"));
-    const storedSongs = JSON.parse(localStorage.getItem("songs"));
-
-    if (!storedUsers)
-      localStorage.setItem(
-        "users",
-        JSON.stringify([defaultAdmin, ...defaultUsers])
-      );
-
-    if (!storedSongs)
-      localStorage.setItem("songs", JSON.stringify(defaultSongs));
-
-    if (storedUser) setUser(storedUser);
-  }, []);
-
-  const login = (email, password) => {
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-
-    const found = users.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (found) {
-      setUser(found);
-      localStorage.setItem("user", JSON.stringify(found));
-      return true;
-    }
-
-    return false;
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-export const useAuth = () => useContext(AuthContext);
- */
