@@ -458,7 +458,7 @@ const { addSongToPlaylist } = useSongs(); // Traemos la función
 
 export default TopSongs; */
 
-import React from "react";
+/* import React from "react";
 import { Container, Col } from "react-bootstrap";
 import { useMusicPlayer } from "../context/MusicPlayerContext";
 import { useSongs } from "../context/SongContext";
@@ -577,9 +577,137 @@ const TopSongs = ({ album, fromHome = false }) => {
   );
 };
 
-export default TopSongs;
+export default TopSongs; */
 
-/*  return (
+import React, { useState, useEffect } from "react";
+import { Container, Col } from "react-bootstrap";
+import { useMusicPlayer } from "../context/MusicPlayerContext";
+import { toast, Slide } from "react-toastify";
+import { showConfirm } from "../helpers/alerts";
+
+const TopSongs = ({ album, isPlaylist = false, fromHome = false }) => {
+  const { playSong, currentSong, isPlaying } = useMusicPlayer();
+  const [playlist, setPlaylist] = useState([]);
+
+  useEffect(() => {
+    const loadPlaylist = () => {
+      const storedPlaylist =
+        JSON.parse(localStorage.getItem("userPlaylist")) || [];
+      setPlaylist(storedPlaylist);
+    };
+
+    loadPlaylist();
+
+    window.addEventListener("storage", loadPlaylist);
+    const customListener = () => loadPlaylist();
+    window.addEventListener("playlistUpdated", customListener);
+
+    return () => {
+      window.removeEventListener("storage", loadPlaylist);
+      window.removeEventListener("playlistUpdated", customListener);
+    };
+  }, []);
+
+  const handleAddToPlaylist = (track) => {
+    const songData = {
+      id: Date.now(),
+      title: track.name,
+      artist: album.artists?.[0]?.name || "Artista",
+      album: album.name,
+      cover: album.image,
+      audio: track.preview_url,
+      genre: "Music",
+      name: track.name,
+      duration_ms: track.duration_ms,
+    };
+
+    const exists = playlist.some(
+      (song) => song.name === track.name && song.album === album.name
+    );
+
+    if (exists) {
+      toast.info(" Esta canción ya está en tu playlist.", {
+        position: "bottom-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "dark",
+        transition: Slide,
+      });
+      return;
+    }
+
+    const updatedPlaylist = [...playlist, songData];
+    setPlaylist(updatedPlaylist);
+    localStorage.setItem("userPlaylist", JSON.stringify(updatedPlaylist));
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("playlistUpdated"));
+    toast.success("${track.name}" agregada a tu playlist., {
+      position: "bottom-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "dark",
+      transition: Slide,
+    });
+  };
+
+  const handleRemoveFromPlaylist = async (track) => {
+    const result = await showConfirm(
+      Esta acción eliminará "${track.name}" de tu playlist.,
+      "¿Eliminar canción?"
+    );
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    const updatedPlaylist = playlist.filter(
+      (song) => !(song.name === track.name && song.album === track.album)
+    );
+
+    setPlaylist(updatedPlaylist);
+    localStorage.setItem("userPlaylist", JSON.stringify(updatedPlaylist));
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("playlistUpdated"));
+    toast.error("${track.name}" eliminada de tu playlist., {
+      position: "bottom-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      theme: "dark",
+      transition: Slide,
+    });
+  };
+
+  const isInPlaylist = (trackName) => {
+    return playlist.some(
+      (song) => song.name === trackName && song.album === album.name
+    );
+  };
+
+  if (!album || !album.tracks || album.tracks.length === 0) {
+    return (
+      <Col xs={12}>
+        <div className="music-list bg-dark text-white rounded p-3 h-100">
+          <h5>⚠️ No hay canciones disponibles</h5>
+          <p className="text-secondary">
+            Seleccioná un artista del sidebar o agregá uno desde el panel de
+            administración.
+          </p>
+        </div>
+      </Col>
+    );
+  }
+
+  return (
     <Container fluid className="px-2 px-lg-3">
       <div
         className="music-list p-3 rounded-4"
@@ -592,10 +720,8 @@ export default TopSongs;
         }}
       >
         <div className="header d-flex justify-content-between align-items-center mb-3">
-          <h5 className="mb-0 text-white">Canciones de {album.name}</h5>
-          <span className="text-secondary small">
-            {album.release_date || "2026"}
-          </span>
+          <h5 className="mb-0">Canciones de {album.name}</h5>
+          <span className="text-secondary small">{album.release_date}</span>
         </div>
 
         <div className="items">
@@ -617,34 +743,37 @@ export default TopSongs;
                   (e.currentTarget.style.backgroundColor = "#191B1B")
                 }
                 onClick={() => {
-                  playSong({
+                  const songData = {
                     title: track.name,
                     artist: album.artists?.[0]?.name || "Artista",
                     album: album.name,
                     cover: track.cover || album.image,
-                    audio: track.preview_url || track.audio,
+                    audio: track.preview_url,
+                    genre: "Music",
                     name: track.name,
-                  });
+                  };
+                  playSong(songData);
                 }}
               >
                 <div className="d-flex align-items-center gap-3">
-                  <span
-                    className="fw-bold text-white"
-                    style={{ minWidth: "30px" }}
-                  >
+                  <span className="fw-bold" style={{ minWidth: "30px" }}>
                     {String(index + 1).padStart(2, "0")}
                   </span>
+
                   <img
                     src={track.cover || album.image}
-                    className="rounded"
+                    className="rounded me-2 me-md-3"
                     width="40"
                     height="40"
                     alt={track.name}
                   />
+
                   <div className="details">
                     <h6
                       className="mb-0 small"
-                      style={{ color: isCurrentTrack ? "#0d6efd" : "white" }}
+                      style={{
+                        color: isCurrentTrack ? "#0d6efd" : "white",
+                      }}
                     >
                       {track.name}
                     </h6>
@@ -652,25 +781,55 @@ export default TopSongs;
                 </div>
 
                 <div className="actions d-flex align-items-center gap-3">
-                  <i
-                    className="bx bxs-plus-square text-secondary fs-4"
-                    style={{ cursor: "pointer" }}
-                    title="Agregar a mi playlist"
-                    onClick={(e) => handleAddClick(e, track._id || track.id)}
-                  ></i>
+                  {track.preview_url && (
+                    <i
+                      className={`bx ${
+                        isCurrentTrack && isPlaying ? "bx-pause" : "bx-play"
+                      } cursor-pointer fs-2`}
+                      title={
+                        isCurrentTrack && isPlaying ? "Pausar" : "Reproducir"
+                      }
+                    ></i>
+                  )}
 
-                  <i
-                    className={`bx ${isCurrentTrack && isPlaying ? "bx-pause" : "bx-play"} fs-2 text-white`}
-                  ></i>
+                  {isPlaylist ? (
+                    <i
+                      className="bx bxs-trash text-danger fs-4"
+                      style={{ cursor: "pointer" }}
+                      title="Eliminar de playlist"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveFromPlaylist(track);
+                      }}
+                    ></i>
+                  ) : (
+                    <i
+                      className={`bx ${
+                        isInPlaylist(track.name)
+                          ? "bxs-check-circle text-success"
+                          : "bxs-plus-square text-secondary"
+                      } fs-4`}
+                      style={{ cursor: "pointer" }}
+                      title={
+                        isInPlaylist(track.name)
+                          ? "Ya está en tu playlist"
+                          : "Agregar a playlist"
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        !isInPlaylist(track.name) && handleAddToPlaylist(track);
+                      }}
+                    ></i>
+                  )}
 
                   <span style={{ color: "#494D4E" }}>
                     {track.duration_ms
                       ? Math.floor(track.duration_ms / 1000 / 60) +
                         ":" +
                         String(
-                          Math.floor((track.duration_ms / 1000) % 60),
+                          Math.floor((track.duration_ms / 1000) % 60)
                         ).padStart(2, "0")
-                      : "0:30"}
+                      : "0:00"}
                   </span>
                 </div>
               </div>
@@ -683,4 +842,3 @@ export default TopSongs;
 };
 
 export default TopSongs;
- */

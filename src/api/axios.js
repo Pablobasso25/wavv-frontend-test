@@ -1,9 +1,10 @@
 import axios from "axios";
 
-// Creamos una instancia personalizada
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+
 const instance = axios.create({
-  baseURL: "http://localhost:4000/api",
-  withCredentials: true, // Permite que Axios envíe y reciba las cookies de sesión
+  baseURL: API_URL,
+  withCredentials: true,
 });
 
 export default instance;

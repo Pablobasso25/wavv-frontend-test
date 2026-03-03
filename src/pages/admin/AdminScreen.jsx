@@ -1,83 +1,146 @@
-/* import { useState, useEffect } from "react";
-import { Container } from "react-bootstrap";
-import NavBar from "../../components/NavBar";
-import UsersSection from "./components/UsersSection";
-import SongsSection from "./components/SongsSection";
-import ArtistsSection from "./components/ArtistsSection";
+import React, { useState, useEffect } from "react";
+import { Container, Button, Nav, Card } from "react-bootstrap";
+import { getSongsRequest, getAlbumsRequest, getUsersRequest } from "../../api/songs";
+import UsersTable from "./components/UsersTable";
+import SongsTable from "./components/SongsTable";
+import ArtistsTable from "./components/ArtistsTable";
+import SearchModal from "./components/SearchModal";
 
 const AdminScreen = () => {
+  const [currentTab, setCurrentTab] = useState("users");
   const [users, setUsers] = useState([]);
   const [songs, setSongs] = useState([]);
-  const [albums, setAlbums] = useState([]);
-  const [savedArtists, setSavedArtists] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    const loadData = () => {
-      const storedUsers = JSON.parse(localStorage.getItem("users")) || [];
-      const storedSongs = JSON.parse(localStorage.getItem("songs")) || [];
-      const storedAlbums = JSON.parse(localStorage.getItem("albums")) || [];
-      const storedArtists = JSON.parse(localStorage.getItem("artistas")) || [];
-
-      setUsers(storedUsers);
-      setSongs(storedSongs);
-      setAlbums(storedAlbums);
-      setSavedArtists(storedArtists);
-    };
-
     loadData();
-    window.addEventListener("storage", loadData);
-    return () => window.removeEventListener("storage", loadData);
-  }, []);
+  }, [currentTab]);
+
+  const loadData = async () => {
+    try {
+      if (currentTab === "songs") {
+        const res = await getSongsRequest();
+        setSongs(res.data);
+      } else if (currentTab === "users") {
+        const res = await getUsersRequest();
+        setUsers(res.data);
+      } else if (currentTab === "artists") {
+        const res = await getAlbumsRequest();
+        setArtists(res.data);
+      }
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    }
+  };
 
   return (
-    <>
-      <NavBar />
-      <Container className="py-5">
-        <UsersSection users={users} setUsers={setUsers} />
-        <SongsSection songs={songs} setSongs={setSongs} />
-        <ArtistsSection
-          albums={albums}
-          setAlbums={setAlbums}
-          savedArtists={savedArtists}
-          setSavedArtists={setSavedArtists}
-        />
-      </Container>
-    </>
-  );
-};
+    <Container className="pt-5 mt-3">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
+        <div className="mb-3 mb-md-0">
+          <h2 className="text-white fw-bold display-6 mb-1">
+            Panel de Control
+          </h2>
+          <p className="text-secondary m-0">
+            Gestión integral de usuarios y contenido
+          </p>
+        </div>
 
-export default AdminScreen;
- */
+        <div className="d-flex align-items-center gap-3">
+          {(currentTab === "songs" || currentTab === "artists") && (
+            <Button
+              variant="success"
+              className="rounded-pill px-4 fw-semibold d-flex align-items-center shadow"
+              onClick={() => setShowModal(true)}
+            >
+              <i className="bi bi-plus-lg me-2"></i>
+              {currentTab === "songs" ? "Nueva Canción" : "Nuevo Artista"}
+            </Button>
+          )}
 
-import React, { useEffect } from "react";
-import { Container } from "react-bootstrap";
-import NavBar from "../../components/NavBar";
-import SongsSection from "./components/SongsSection";
-import ArtistsSection from "./components/ArtistsSection";
-import { useSongs } from "../../context/SongContext";
+          <Nav
+            variant="pills"
+            activeKey={currentTab}
+            onSelect={(selectedKey) => setCurrentTab(selectedKey)}
+            className="bg-dark border border-secondary rounded-pill p-1"
+          >
+            <Nav.Item>
+              <Nav.Link
+                eventKey="users"
+                className={`rounded-pill px-4 fw-semibold d-flex align-items-center ${
+                  currentTab === "users"
+                    ? "bg-primary text-white shadow"
+                    : "text-secondary hover-text-white"
+                }`}
+                style={{ transition: "all 0.3s" }}
+              >
+                <i className="bi bi-people-fill me-2"></i>
+                Usuarios
+              </Nav.Link>
+            </Nav.Item>
 
-const AdminScreen = () => {
-  const { songs, getSongs } = useSongs();
+            <Nav.Item>
+              <Nav.Link
+                eventKey="songs"
+                className={`rounded-pill px-4 fw-semibold d-flex align-items-center ${
+                  currentTab === "songs"
+                    ? "bg-primary text-white shadow"
+                    : "text-secondary hover-text-white"
+                }`}
+                style={{ transition: "all 0.3s" }}
+              >
+                <i className="bi bi-music-note-beamed me-2"></i>
+                Canciones
+              </Nav.Link>
+            </Nav.Item>
 
-  useEffect(() => {
-    getSongs(); // Trae las canciones de MongoDB Atlas
-  }, []);
+            <Nav.Item>
+              <Nav.Link
+                eventKey="artists"
+                className={`rounded-pill px-4 fw-semibold d-flex align-items-center ${
+                  currentTab === "artists"
+                    ? "bg-primary text-white shadow"
+                    : "text-secondary hover-text-white"
+                }`}
+                style={{ transition: "all 0.3s" }}
+              >
+                <i className="bi bi-mic-fill me-2"></i>
+                Artistas
+              </Nav.Link>
+            </Nav.Item>
+          </Nav>
+        </div>
+      </div>
 
-  return (
-    <div className="bg-black min-vh-100">
-      <NavBar />
-      <Container className="py-5">
-        <h2 className="text-white mb-4">Panel de Control</h2>
-        {/* Pasamos las canciones reales del backend */}
-        <SongsSection songs={songs} />
-        <ArtistsSection
-          albums={[]}
-          setAlbums={() => {}}
-          savedArtists={[]}
-          setSavedArtists={() => {}}
-        />
-      </Container>
-    </div>
+      <Card
+        className="border-0 shadow-lg overflow-hidden"
+        style={{ backgroundColor: "#202026", borderRadius: "1rem" }}
+      >
+        <Card.Body className="p-0">
+          {currentTab === "users" && (
+            <UsersTable users={users} setUsers={setUsers} />
+          )}
+
+          {currentTab === "songs" && (
+            <SongsTable songs={songs} setSongs={setSongs} />
+          )}
+
+          {currentTab === "artists" && (
+            <ArtistsTable artists={artists} setArtists={setArtists} />
+          )}
+        </Card.Body>
+      </Card>
+
+      <SearchModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        currentTab={currentTab}
+        songs={songs}
+        setSongs={setSongs}
+        artists={artists}
+        setArtists={setArtists}
+      />
+    </Container>
   );
 };
 
