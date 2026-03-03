@@ -1,7 +1,7 @@
 import React from "react";
 import { Container, Row, Col, Button, Image } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-/* import LOGO_PATH from "../../assets/images/logo.png"; */
+import LOGO_PATH from "../../assets/images/logo.png";
 import "../error404/Error404Screen.css";
 
 const Error404Screen = () => {
