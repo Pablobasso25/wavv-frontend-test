@@ -1,4 +1,4 @@
-/* import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
   Pause,
@@ -7,50 +7,97 @@ import {
   SkipForward,
   Volume2,
   Minimize2,
-  Shuffle,
-  Repeat,
   FileText,
   Heart,
+  Activity,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { useMusicPlayer } from "../context/MusicPlayerContext";
+import { useMusicPlayer } from "../../context/MusicPlayerContext";
+import { useSongs } from "../../context/SongContext";
 import "./MusicPlayer.css";
 
 const PLAYER_WIDTH = 300;
 const MARGIN = 20;
-
-const MusicPlayer = () => {
-  // Traemos la logica del contexto
-  const { currentSong, isPlaying, togglePlay, nextTrack, prevTrack, audioRef } =
-    useMusicPlayer();
-
-
-  const [playing, setPlaying] = useState(false);
+const MusicPlayer = ({ isStatic = false }) => {
+  const {
+    currentSong,
+    isPlaying,
+    togglePlay,
+    nextTrack,
+    prevTrack,
+    audioRef,
+    executeActionWithAd,
+    isAdPlaying,
+    setIsPlaying,
+    playUISound,
+  } = useMusicPlayer();
+  const {
+    userPlaylist,
+    getUserPlaylist,
+  } = useSongs();
   const [visible, setVisible] = useState(true);
   const [minimized, setMinimized] = useState(false);
   const [position, setPosition] = useState({ x: 20, y: 80 });
   const [isDragging, setIsDragging] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration] = useState(180);
-  const [volume, setVolume] = useState(50);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(20);
   const [isLiked, setIsLiked] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
-  const [isShuffled, setIsShuffled] = useState(false);
-  const [repeatMode, setRepeatMode] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-
   const dragRef = useRef(null);
   const offsetRef = useRef({ x: 0, y: 0 });
   const location = useLocation();
+  
+  useEffect(() => {
+    getUserPlaylist(1, 1000);
+  }, []);
+  
+  useEffect(() => {
+    if (currentSong && userPlaylist && Array.isArray(userPlaylist)) {
+      const isSaved = userPlaylist.some(
+        (s) => 
+          s._id === currentSong._id || 
+          s.id === currentSong._id ||
+          (s.title === (currentSong.title || currentSong.name) && s.artist === currentSong.artist)
+      );
+      setIsLiked(isSaved);
+    } else {
+      setIsLiked(false);
+    }
+  }, [currentSong, userPlaylist]);
+
+  const handleLike = () => {
+    return;
+  };
+  
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const updateProgress = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration || 0);
+    const handleEnded = () => executeActionWithAd(nextTrack);
+    audio.addEventListener("timeupdate", updateProgress);
+    audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("ended", handleEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", updateProgress);
+      audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [audioRef, nextTrack, executeActionWithAd]);
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume / 100;
+  }, [volume, audioRef]);
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 992;
+      const mobile = window.innerWidth <= 1280;
       setIsMobile(mobile);
       if (!mobile) {
-        setPosition({
+        setPosition((prev) => ({
           x: Math.max(MARGIN, window.innerWidth - PLAYER_WIDTH - MARGIN),
-          y: 80,
-        });
+          y: prev.y,
+        }));
       }
     };
     handleResize();
@@ -59,14 +106,11 @@ const MusicPlayer = () => {
   }, []);
   const isMusicPage =
     location.pathname === "/" || location.pathname === "/home";
-  const isFloating = !isMusicPage && visible && !isMobile;
+  const isFloating = !isStatic && !isMusicPage && visible && !isMobile;
   const handleMouseDown = (e) => {
     if (!e.target.closest(".player-header")) return;
     const rect = dragRef.current.getBoundingClientRect();
-    offsetRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
+    offsetRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     setIsDragging(true);
     e.preventDefault();
   };
@@ -79,10 +123,7 @@ const MusicPlayer = () => {
       y: Math.min(Math.max(MARGIN, e.clientY - offsetRef.current.y), maxY),
     });
   };
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    document.body.style.userSelect = "";
-  };
+  const handleMouseUp = () => setIsDragging(false);
   useEffect(() => {
     if (isDragging && isFloating) {
       document.addEventListener("mousemove", handleMouseMove);
@@ -95,401 +136,291 @@ const MusicPlayer = () => {
       };
     }
   }, [isDragging, isFloating]);
-  useEffect(() => {
-    if (!playing) return;
-    const interval = setInterval(() => {
-      setCurrentTime((prev) => (prev < duration ? prev + 1 : 0));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [playing, duration]);
   const formatTime = (s) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const handleProgressChange = (e) => {
-    setCurrentTime((e.target.value / 100) * duration);
+    if (isAdPlaying) return;
+    const newTime = (e.target.value / 100) * duration;
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
   };
+  const blockedStyle = isAdPlaying
+    ? {
+        pointerEvents: "none",
+        opacity: 0.5,
+        filter: "blur(2px)",
+        transition: "all 0.3s ease",
+      }
+    : { transition: "all 0.3s ease" };
+  const songImage =
+    currentSong?.image ||
+    currentSong?.cover ||
+    currentSong?.album?.images?.[0]?.url ||
+    "https://via.placeholder.com/150";
   if (isMobile) {
+    if (!currentSong) return null;
     return (
-      <div className="music-player mobile-player">
-        <input
-          aria-label="Mobile progress"
-          className="mobile-progress"
-          type="range"
-          min="0"
-          max="100"
-          value={(currentTime / duration) * 100}
-          onChange={handleProgressChange}
-          style={{
-            background: `linear-gradient(90deg, #5773ff ${(currentTime / duration) * 100}%, rgba(255,255,255,0.12) ${(currentTime / duration) * 100}%)`,
-          }}
-        />
-        <div className="mobile-content">
-          <div className="mobile-artwork">
-            <img
-              src="https://images.pexels.com/photos/6429162/pexels-photo-6429162.jpeg"
-              alt="Song artwork"
-            />
-          </div>
-          <div className="mobile-info">
-            <p className="song-title">Song Name</p>
-            <p className="song-artist">Artist Name</p>
-          </div>
-          <div className="mobile-controls">
-            <button className="control-btn">
-              <SkipBack size={16} />
-            </button>
-            <button
-              className="play-btn mobile-play-btn"
-              onClick={() => setPlaying(!playing)}
-            >
-              {playing ? <Pause size={20} /> : <Play size={20} />}
-            </button>
-            <button className="control-btn">
-              <SkipForward size={16} />
-            </button>
+      <>
+        <style>
+          {`
+            .mobile-player {
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              width: 100%;
+              max-width: 100vw;
+              margin: 0;
+              background-color: #18181b;
+              border-top: 1px solid rgba(255,255,255,0.1);
+              z-index: 9999;
+              padding-bottom: env(safe-area-inset-bottom);
+              box-sizing: border-box;
+            }
+            .mobile-content {
+              display: flex;
+              align-items: center;
+              padding: 12px 16px;
+              gap: 12px;
+              width: 100%;
+              box-sizing: border-box;
+            }
+            .mobile-artwork {
+              flex-shrink: 0;
+            }
+            .mobile-artwork img {
+              width: 48px;
+              height: 48px;
+              border-radius: 6px;
+              object-fit: cover;
+              display: block;
+            }
+            .mobile-info {
+              flex: 1;
+              min-width: 0;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              margin-right: 8px;
+            }
+            .mobile-info .song-title {
+              font-size: 14px;
+              font-weight: 600;
+              color: white;
+              margin: 0;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .mobile-info .song-artist {
+              font-size: 12px;
+              color: #a1a1aa;
+              margin: 0;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .mobile-controls {
+              display: flex;
+              align-items: center;
+              gap: 16px;
+              flex-shrink: 0;
+            }
+            .control-btn {
+              background: transparent;
+              border: none;
+              color: white;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+            }
+            .mobile-play-btn {
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              background-color: white;
+              color: black;
+              border: none;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+            }
+            .mobile-progress {
+              width: 100%;
+              height: 2px;
+              display: block;
+              appearance: none;
+              background: transparent;
+              cursor: pointer;
+              position: absolute;
+              top: -1px;
+              left: 0;
+              margin: 0;
+            }
+            .mobile-progress::-webkit-slider-thumb {
+              appearance: none;
+              width: 0;
+              height: 0;
+            }
+          `}
+        </style>
+        <div className="mobile-player" style={blockedStyle}>
+          <input
+            className="mobile-progress"
+            type="range"
+            min="0"
+            max="100"
+            value={duration ? (currentTime / duration) * 100 : 0}
+            onChange={handleProgressChange}
+            style={{
+              background: `linear-gradient(90deg, #5773FF ${
+                duration ? (currentTime / duration) * 100 : 0
+              }%, rgba(255,255,255,0.12) ${
+                duration ? (currentTime / duration) * 100 : 0
+              }%)`,
+            }}
+          />
+          <div className="mobile-content">
+            <div className="mobile-artwork">
+              <img src={songImage} alt="Artwork" />
+            </div>
+            <div className="mobile-info" style={{ overflow: "hidden" }}>
+              <p
+                className="song-title"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {currentSong?.title}
+              </p>
+              <p
+                className="song-artist"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {currentSong?.artist}
+              </p>
+            </div>
+            <div className="mobile-controls">
+              <button
+                className="control-btn"
+                onClick={() => executeActionWithAd(prevTrack)}
+              >
+                <SkipBack size={16} />
+              </button>
+              <button className="play-btn mobile-play-btn" onClick={togglePlay}>
+                {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+              </button>
+              <button
+                className="control-btn"
+                onClick={() => executeActionWithAd(nextTrack)}
+              >
+                <SkipForward size={16} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
   if (!visible) {
     return (
       <button
         className="player-toggle-btn"
-        onClick={() => {
-          setVisible(true);
-          setPosition({
-            x: window.innerWidth - PLAYER_WIDTH - MARGIN,
-            y: 80,
-          });
-        }}
+        onClick={() => setVisible(true)}
         style={{
           position: "fixed",
           bottom: "20px",
           right: "20px",
           zIndex: 1000,
+          ...blockedStyle,
         }}
       >
-        🎵
+        <Play size={24} />
       </button>
     );
   }
   return (
     <div
       ref={dragRef}
-      className={`music-player ${
-        isMusicPage ? "fixed-player" : "floating-player"
-      } ${minimized ? "minimized" : ""}`}
-      style={
-        isFloating
+      className={`music-player ${isMusicPage ? "fixed-player" : isStatic ? "static-player" : "floating-player"} ${
+        minimized ? "minimized" : ""
+      }`}
+      style={{
+        ...(isFloating
           ? {
               position: "fixed",
               left: position.x,
               top: position.y,
-              zIndex: 1000,
+              zIndex: 10000,
             }
           : isMusicPage
             ? {
                 position: "absolute",
-                right: "80px",
-                top: "55%",
+                right: "10px",
+                top: "45%",
                 transform: "translateY(-50%)",
                 zIndex: 1000,
               }
-            : {}
-      }
+            : isStatic
+              ? {
+                  position: "sticky",
+                  top: 0,
+                  right: 0,
+                  height: "100vh",
+                  width: PLAYER_WIDTH,
+                  minWidth: PLAYER_WIDTH,
+                  zIndex: 1000,
+                  borderLeft: "1px solid rgba(255,255,255,0.1)",
+                }
+              : {}),
+        ...blockedStyle,
+      }}
       onMouseDown={isFloating ? handleMouseDown : undefined}
     >
+      <style>
+        {`
+          @keyframes pulse-animation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+        `}
+      </style>
       <div className="player-header">
-        <span className="now-playing">Now Playing</span>
-        {isFloating && (
-          <div className="header-actions">
-            <button onClick={() => setMinimized(!minimized)}>
-              <Minimize2 size={16} />
-            </button>
-            <button onClick={() => setVisible(false)}>
-              <X size={16} />
-            </button>
-          </div>
-        )}
-      </div>
-      {!minimized && (
-        <>
-          {isMusicPage && (
-            <div className="fixed-artwork">
-              <img
-                src="https://images.pexels.com/photos/6429162/pexels-photo-6429162.jpeg"
-                alt="Song artwork"
-              />
-            </div>
-          )}
-          {isMusicPage ? (
-            <div className="fixed-song-info">
-              <h4 className="title">Song Name</h4>
-              <p className="artist">Artist Name</p>
-            </div>
-          ) : (
-            <div className="player-main">
-              <img
-                className="cover"
-                src="https://images.pexels.com/photos/6429162/pexels-photo-6429162.jpeg"
-                alt="cover"
-              />
-              <div className="song-meta">
-                <h4 className="title">Song Name</h4>
-                <p className="artist">Artist Name</p>
-              </div>
-            </div>
-          )}
-          <div className="player-progress">
-            <span>{formatTime(Math.floor(currentTime))}</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={(currentTime / duration) * 100}
-              onChange={handleProgressChange}
-            />
-            <span>{formatTime(duration)}</span>
-          </div>
-          <div className="controls">
-            <button className={isShuffled ? "active" : ""}>
-              <Shuffle size={16} />
-            </button>
-            <button>
-              <SkipBack size={20} />
-            </button>
-            <button className="play" onClick={() => setPlaying(!playing)}>
-              {playing ? <Pause size={28} /> : <Play size={28} />}
-            </button>
-            <button>
-              <SkipForward size={20} />
-            </button>
-            <button className={repeatMode ? "active" : ""}>
-              <Repeat size={16} />
-            </button>
-          </div>
-          <div className="extras">
-            <button
-              className={isLiked ? "liked" : ""}
-              onClick={() => setIsLiked(!isLiked)}
-            >
-              <Heart size={16} />
-            </button>
-            <button
-              className={showLyrics ? "active" : ""}
-              onClick={() => setShowLyrics(!showLyrics)}
-            >
-              <FileText size={16} />
-            </button>
-            <div className="volume">
-              <Volume2 size={16} />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={volume}
-                onChange={(e) => setVolume(e.target.value)}
-              />
-            </div>
-          </div>
-          {showLyrics && (
-            <div className="lyrics-panel">
-              <div className="lyrics-header">
-                <span>Lyrics</span>
-                <button
-                  className="lyrics-close-btn"
-                  onClick={() => setShowLyrics(false)}
-                  aria-label="Cerrar letras"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-              <div className="lyrics-body">
-                <p>Lyrics will be displayed here...</p>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-export default MusicPlayer; */
-
-import React, { useState, useRef, useEffect } from "react";
-import {
-  Play,
-  Pause,
-  X,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  Minimize2,
-  Shuffle,
-  Repeat,
-  FileText,
-  Heart,
-} from "lucide-react";
-import { useLocation } from "react-router-dom";
-import { useMusicPlayer } from "../../context/MusicPlayerContext";
-import "./MusicPlayer.css";
-
-
-const PLAYER_WIDTH = 300;
-const MARGIN = 20;
-const MusicPlayer = () => {
-  const { currentSong, isPlaying, togglePlay, nextTrack, prevTrack, audioRef } =
-    useMusicPlayer();
-  const [visible, setVisible] = useState(true);
-  const [minimized, setMinimized] = useState(false);
-  const [position, setPosition] = useState({ x: 20, y: 80 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(50);
-  const [isLiked, setIsLiked] = useState(false);
-  const [showLyrics, setShowLyrics] = useState(false);
-  const [isShuffled, setIsShuffled] = useState(false);
-  const [repeatMode, setRepeatMode] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const dragRef = useRef(null);
-  const offsetRef = useRef({ x: 0, y: 0 });
-  const location = useLocation();
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-    audio.addEventListener("timeupdate", updateTime);
-    audio.addEventListener("loadedmetadata", updateDuration);
-    return () => {
-      audio.removeEventListener("timeupdate", updateTime);
-      audio.removeEventListener("loadedmetadata", updateDuration);
-    };
-  }, [currentSong, audioRef]);
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth <= 992;
-      setIsMobile(mobile);
-      if (!mobile) {
-        setPosition({
-          x: Math.max(MARGIN, window.innerWidth - PLAYER_WIDTH - MARGIN),
-          y: 80,
-        });
-      }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-  const isMusicPage =
-    location.pathname === "/" || location.pathname === "/home";
-  const isFloating = !isMusicPage && visible && !isMobile;
-
-  const handleMouseDown = (e) => {
-    if (!e.target.closest(".player-header")) return;
-    const rect = dragRef.current.getBoundingClientRect();
-    offsetRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    setIsDragging(true);
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    const maxX = window.innerWidth - PLAYER_WIDTH - MARGIN;
-    const maxY = window.innerHeight - 120;
-    setPosition({
-      x: Math.min(Math.max(MARGIN, e.clientX - offsetRef.current.x), maxX),
-      y: Math.min(Math.max(MARGIN, e.clientY - offsetRef.current.y), maxY),
-    });
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  useEffect(() => {
-    if (isDragging && isFloating) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-    }
-  }, [isDragging, isFloating]);
-
-  const formatTime = (s) =>
-    `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-
-  const handleProgressChange = (e) => {
-    const time = (e.target.value / 100) * duration;
-    audioRef.current.currentTime = time;
-    setCurrentTime(time);
-  };
-
-  if (!currentSong) return null; 
-
-  if (isMobile) {
-    return (
-      <div className="music-player mobile-player">
-        <input
-          aria-label="Mobile progress"
-          className="mobile-progress"
-          type="range"
-          min="0"
-          max="100"
-          value={(currentTime / duration) * 100 || 0}
-          onChange={handleProgressChange}
+        <Activity
+          size={16}
+          style={{
+            marginRight: "8px",
+            animation: isPlaying
+              ? "pulse-animation 1.5s infinite ease-in-out"
+              : "none",
+            color: isPlaying ? "#5773ff" : "inherit",
+          }}
         />
-        <div className="mobile-content">
-          <div className="mobile-artwork">
-            <img src={currentSong.cover || currentSong.image} alt="artwork" />
-          </div>
-          <div className="mobile-info">
-            <p className="song-title">{currentSong.title}</p>
-            <p className="song-artist">{currentSong.artist}</p>
-          </div>
-          <div className="mobile-controls">
-            <button className="control-btn" onClick={prevTrack}>
-              <SkipBack size={16} />
-            </button>
-            <button className="play-btn mobile-play-btn" onClick={togglePlay}>
-              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-            </button>
-            <button className="control-btn" onClick={nextTrack}>
-              <SkipForward size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!visible)
-    return (
-      <button className="player-toggle-btn" onClick={() => setVisible(true)}>
-        🎵
-      </button>
-    );
-
-  return (
-    <div
-      ref={dragRef}
-      className={`music-player ${isMusicPage ? "fixed-player" : "floating-player"} ${minimized ? "minimized" : ""}`}
-      style={
-        isFloating
-          ? {
-              position: "fixed",
-              left: position.x,
-              top: position.y,
-              zIndex: 1000,
-            }
-          : {}
-      }
-      onMouseDown={isFloating ? handleMouseDown : undefined}
-    >
-      <div className="player-header">
-        <span className="now-playing">Now Playing</span>
-        {isFloating && (
+        <span
+          className="now-playing"
+          style={{
+            flex: 1,
+            textAlign: "center",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {currentSong?.artist || "Now Playing"}
+        </span>
+        {(isFloating || isStatic) && (
           <div className="header-actions">
             <button onClick={() => setMinimized(!minimized)}>
               <Minimize2 size={16} />
@@ -505,54 +436,117 @@ const MusicPlayer = () => {
           <div className={isMusicPage ? "fixed-artwork" : "player-main"}>
             <img
               className={isMusicPage ? "" : "cover"}
-              src={currentSong.cover || currentSong.image}
+              src={songImage}
               alt="cover"
             />
-            <div className={isMusicPage ? "fixed-song-info" : "song-meta"}>
-              <h4 className="title">{currentSong.title}</h4>
-              <p className="artist">{currentSong.artist}</p>
-            </div>
+            {!isMusicPage && (
+              <div
+                className="song-meta"
+                style={{
+                  overflow: "hidden",
+                  width: "100%",
+                  textAlign: "center",
+                  padding: "0 10px",
+                }}
+              >
+                <h4
+                  className="title"
+                  title={currentSong?.title}
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {currentSong?.title || "Seleccione canción"}
+                </h4>
+                <p
+                  className="artist"
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {currentSong?.artist || "--"}
+                </p>
+              </div>
+            )}
           </div>
-
+          {isMusicPage && (
+            <div className="fixed-song-info" style={{ overflow: "hidden" }}>
+              <h4
+                className="title"
+                title={currentSong?.title}
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {currentSong?.title || "Seleccione canción"}
+              </h4>
+              <p
+                className="artist"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {currentSong?.artist || "--"}
+              </p>
+            </div>
+          )}
           <div className="player-progress">
             <span>{formatTime(currentTime)}</span>
             <input
               type="range"
               min="0"
               max="100"
-              value={(currentTime / duration) * 100 || 0}
+              disabled={!currentSong}
+              value={duration ? (currentTime / duration) * 100 : 0}
               onChange={handleProgressChange}
             />
-            <span>{formatTime(duration || 0)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
-
           <div className="controls">
-            <button>
-              <Shuffle size={16} />
-            </button>
-            <button onClick={prevTrack}>
+            <button
+              onClick={() => executeActionWithAd(prevTrack)}
+              disabled={!currentSong}
+            >
               <SkipBack size={20} />
             </button>
-            <button className="play" onClick={togglePlay}>
+            <button
+              className="play"
+              onClick={togglePlay}
+              disabled={!currentSong}
+              style={{ opacity: !currentSong ? 0.5 : 1 }}
+            >
               {isPlaying ? <Pause size={28} /> : <Play size={28} />}
             </button>
-            <button onClick={nextTrack}>
+            <button
+              onClick={() => executeActionWithAd(nextTrack)}
+              disabled={!currentSong}
+            >
               <SkipForward size={20} />
-            </button>
-            <button>
-              <Repeat size={16} />
             </button>
           </div>
           <div className="extras">
             <button
               className={isLiked ? "liked" : ""}
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={handleLike}
+              disabled={!currentSong}
+              title={isLiked ? "Quitar de Playlist" : "Guardar en Playlist"}
             >
-              <Heart size={16} />
+              <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
             </button>
             <button
               className={showLyrics ? "active" : ""}
               onClick={() => setShowLyrics(!showLyrics)}
+              disabled
+              style={{ opacity: 0.5, cursor: "not-allowed" }}
+              title="Letra no disponible"
             >
               <FileText size={16} />
             </button>
@@ -574,13 +568,14 @@ const MusicPlayer = () => {
                 <button
                   className="lyrics-close-btn"
                   onClick={() => setShowLyrics(false)}
-                  aria-label="Cerrar letras"
                 >
                   <X size={14} />
                 </button>
               </div>
               <div className="lyrics-body">
-                <p>Letra no disponible</p>
+                <p>
+                  Letra no disponible
+                </p>
               </div>
             </div>
           )}
@@ -589,4 +584,5 @@ const MusicPlayer = () => {
     </div>
   );
 };
+
 export default MusicPlayer;
